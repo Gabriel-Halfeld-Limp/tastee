@@ -1,0 +1,18 @@
+[project]
+name = "tastee-aula-2"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Gabriel Halfeld Limp",email = "halfeld.limp.gabriel@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{include = "tastee_aula_2", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
