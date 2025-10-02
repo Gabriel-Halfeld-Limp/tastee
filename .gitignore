@@ -1,0 +1,85 @@
+# # # Arquivos de Bytecode e Cache do Python # # #
+# Ignora os arquivos de bytecode compilado e caches que o Python gera.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# # # Ambientes Virtuais # # #
+# Nunca adicione seu ambiente virtual ao Git. Ele contém pacotes
+# que podem ser específicos do seu sistema operacional.
+# O arquivo 'pyproject.toml' (ou 'requirements.txt') é quem define as dependências.
+.venv
+venv
+env
+.env
+ENV
+*/.venv
+*/venv
+*/env
+*/.env
+*/ENV
+
+
+# # # Arquivos de Dependências e Pacotes # # #
+# Ignora pastas de distribuição e caches de instalação.
+.eggs/
+*.egg-info/
+*.egg
+build/
+dist/
+pip-wheel-metadata/
+sdist/
+wheelhouse/
+pip-cache/
+.pip-cache/
+
+
+# # # Configurações de IDEs e Editores # # #
+# Ignora arquivos específicos do ambiente de desenvolvimento de cada pessoa.
+.idea/
+.vscode/
+# Exceção: é comum compartilhar configurações de projeto do VSCode.
+# Descomente a linha abaixo se quiser versionar as configurações recomendadas.
+#!.vscode/settings.json
+#!.vscode/extensions.json
+#!.vscode/launch.json
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+
+# # # Arquivos de Testes e Cobertura de Código # # #
+# Ignora caches e relatórios gerados por ferramentas de teste.
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+pytestdebug.log
+
+
+# # # Segredos e Variáveis de Ambiente # # #
+# NUNCA adicione arquivos com senhas, chaves de API ou segredos ao Git!
+# Crie um arquivo .env.example com as variáveis vazias e adicione-o ao Git.
+.env
+.env.*
+!.env.example
+
+
+# # # Jupyter Notebook # # #
+# Ignora os checkpoints que o Jupyter cria automaticamente.
+.ipynb_checkpoints
+
+
+# # # Outros # # #
+# Logs de aplicação
+*.log
+
+# Bancos de dados locais
+*.sqlite3
+*.db
