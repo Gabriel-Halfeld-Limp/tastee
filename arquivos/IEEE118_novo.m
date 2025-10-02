@@ -1,3 +1,5 @@
+ 
+ 
  % TITLE MARINA MARTINS MATTOS
  % ****   A 118 Bus IEEE Test System  ****  
  
@@ -412,17 +414,17 @@ DGER = [
   116    0    1     116
                              ]; 
                          
-% Colocando os compensadores síncronos 
-% como geradores fictícios com alto
+% Colocando os compensadores sï¿½ncronos 
+% como geradores fictï¿½cios com alto
 % custo
 for i=1:size(DGER,1)
-    if DGER(i,3)==1 % compensador síncrono
+    if DGER(i,3)==1 % compensador sï¿½ncrono
         DGER(i,4) = 400;
         DGER(i,3) = 100;
     end
 end
                          
-% Geradores eólicos
+% Geradores eï¿½licos
         %Bus   PGmin  PGmax
 DGW = [  1     0.0    10
          8     0.0    10
@@ -438,7 +440,7 @@ DGW = [  1     0.0    10
   
 % % Choose the Limit of powerflow
 % FLG_LIM = 1; % Considerar limite de LT
-% FLG_LIM = 0; % Não Considerar limite de LT
+% FLG_LIM = 0; % Nï¿½o Considerar limite de LT
 
 FLG_LIM = 1;
 
@@ -449,12 +451,12 @@ FLG_LIM = 1;
 %            
 % % Choose number 1 to PrntScr 
 % 
- R_BAR = 1;   % R_BAR = 1; Imprime Relatório de Barra 
-%             % R_BAR = 0; Não Imprime Relatório de Barra 
+ R_BAR = 1;   % R_BAR = 1; Imprime Relatï¿½rio de Barra 
+%             % R_BAR = 0; Nï¿½o Imprime Relatï¿½rio de Barra 
 % 
- R_GER = 1;   % R_GER = 1; Imprime Relatório de Geração 
-%             % R_GER = 0; Não Imprime Relatório de Geração 
+ R_GER = 1;   % R_GER = 1; Imprime Relatï¿½rio de Geraï¿½ï¿½o 
+%             % R_GER = 0; Nï¿½o Imprime Relatï¿½rio de Geraï¿½ï¿½o 
 % 
- R_LIN = 1;   % R_BAR = 1; Imprime Relatório de Linha 
-%             % R_BAR = 0; Não Imprime Relatório de Linha 
+ R_LIN = 1;   % R_BAR = 1; Imprime Relatï¿½rio de Linha 
+%             % R_BAR = 0; Nï¿½o Imprime Relatï¿½rio de Linha 
          

@@ -1,3 +1,4 @@
+from .. import Network, Bus, Line, Generator, Load
 class System3Bus(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
