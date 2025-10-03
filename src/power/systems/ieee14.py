@@ -6,11 +6,12 @@ class IEEE14(Network):
     """
     def __init__(self):
         super().__init__(name="IEEE 14 Bus System")
+        self.sb = 100
         self._create_buses()
         self._create_lines()
         self._create_generators()
         self._create_loads()
-        self.sb = 100
+
 
 
     def _create_buses(self):
