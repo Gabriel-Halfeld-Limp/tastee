@@ -21,9 +21,9 @@ class System3Bus(Network):
         - Tensão inicial de 1.0 p.u. e ângulo 0.0 para todas as barras (exceto Slack que já tem ângulo 0).
         """
         self.buses = [
-            Bus(self, id=1, bus_type='Slack', v=1.0, theta=0.0),
-            Bus(self, id=2, bus_type='PQ',    v=1.0, theta=0.0),
-            Bus(self, id=3, bus_type='PQ',    v=1.0, theta=0.0),
+            Bus(self, id=1, bus_type='Slack'),
+            Bus(self, id=2),
+            Bus(self, id=3),
         ]
 
     def _create_lines(self):
@@ -34,9 +34,9 @@ class System3Bus(Network):
         """
         self.lines = [
             # Line(id, from, to, r, x, b_half)
-            Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r=10.0, x=100.0, pb=self.sb, flow_max=2), 
-            Line(id=2, from_bus=self.buses[0], to_bus=self.buses[2], r=15.0, x=100.0, pb=self.sb, flow_max=10),  
-            Line(id=3, from_bus=self.buses[1], to_bus=self.buses[2], r=5.0,  x=50.0,  pb=self.sb, flow_max=10), 
+            Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r=0.10,  x=1  , flow_max=0.02), 
+            Line(id=2, from_bus=self.buses[0], to_bus=self.buses[2], r=0.15,  x=1  , flow_max=0.10),  
+            Line(id=3, from_bus=self.buses[1], to_bus=self.buses[2], r=0.05,  x=0.5, flow_max=0.10), 
         ]
 
     def _create_generators(self):
@@ -59,7 +59,7 @@ class System3Bus(Network):
             Generator(
                 id=1001 + index,
                 bus=bus_object,
-                cost_b_input=10000,
+                cost_b_input=400,
                 pb=self.sb,
                 p_max_input=99999,
                 p_min_input=0

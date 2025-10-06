@@ -68,11 +68,11 @@ class Generator:
 
     @property
     def cost_b(self) -> float:
-        return self.cost_b_input * self.pb**2
+        return self.cost_b_input * self.pb
 
     @property
     def cost_c(self) -> float:
-        return self.cost_c_input * self.pb**3
+        return self.cost_c_input * self.pb**2
     
     @property
     def ramp(self) -> float:

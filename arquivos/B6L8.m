@@ -6,7 +6,7 @@
  DBAR = [
    1 2 1 1.0     0.0     1.0     6.9      -9999  9999.0    0.0    0.0        0.0
    2 0 0 1.0   -4.98     0.0    0.00      0.0    0.0       20.0   8.5     0.0 
-   3 1 1 1.05   -12.72    0.0    0.00     -200.0  250.0     40.0   17.0     0.0
+   3 1 1 1.05   -12.72   0.0    0.00     -200.0  250.0     40.0   17.0     0.0
    4 1 1 1.0    0.0      0.0    0.00     -200.0  250.0     30.0   4.0       0.0
    5 0 0 1.0    -4.98    0.0    0.00      0.0    0.0       30.0   12.7     0.0 
    6 0 0 1.0   -12.72    0.0    0.00      0.0    0.0       40.0   17.3     0.0];
@@ -54,7 +54,7 @@ DGER = [
 
 % % Choose the Limit of powerflow
 % FLG_LIM = 1; % Considerar limite de LT
-% FLG_LIM = 0; % Não Considerar limite de LT
+% FLG_LIM = 0; % Nï¿½o Considerar limite de LT
 
 FLG_LIM = 1;
 
@@ -65,14 +65,14 @@ FLG_LIM = 1;
 %            
 % % Choose number 1 to PrntScr 
 % 
- R_BAR = 1;   % R_BAR = 1; Imprime Relatório de Barra 
-%             % R_BAR = 0; Não Imprime Relatório de Barra 
+ R_BAR = 1;   % R_BAR = 1; Imprime Relatï¿½rio de Barra 
+%             % R_BAR = 0; Nï¿½o Imprime Relatï¿½rio de Barra 
 % 
- R_GER = 1;   % R_GER = 1; Imprime Relatório de Geração 
-%             % R_GER = 0; Não Imprime Relatório de Geração 
+ R_GER = 1;   % R_GER = 1; Imprime Relatï¿½rio de Geraï¿½ï¿½o 
+%             % R_GER = 0; Nï¿½o Imprime Relatï¿½rio de Geraï¿½ï¿½o 
 % 
- R_LIN = 1;   % R_BAR = 1; Imprime Relatório de Linha 
-%             % R_BAR = 0; Não Imprime Relatório de Linha 
+ R_LIN = 1;   % R_BAR = 1; Imprime Relatï¿½rio de Linha 
+%             % R_BAR = 0; Nï¿½o Imprime Relatï¿½rio de Linha 
          
            
            

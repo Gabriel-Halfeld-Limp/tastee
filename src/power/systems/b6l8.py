@@ -1,142 +1,79 @@
-import math
 from .. import Network, Bus, Line, Generator, Load
-class SystemB6L8(Network):
+class B6L8(Network):
     """
-    Classe para representar o sistema de teste de 6 barras.
+    Classe para representar o sistema de 3 barras fornecido.
     """
     def __init__(self):
-        super().__init__(name="Sistema de 6 Barras")
+        super().__init__(name="Sistema de 3 Barras")
+        self.sb = 100
         self._create_buses()
         self._create_lines()
         self._create_generators()
         self._create_loads()
 
+
     def _create_buses(self):
         """
-        Cria as barras do sistema a partir da matriz DBAR.
-        - Tipo 2 -> 'Slack', Tipo 1 -> 'PV', Tipo 0 -> 'PQ'.
-        - Ângulos foram convertidos de graus para radianos.
+        Cria as barras do sistema.
+        Suposições:
+        - Barra 1 é a barra de referência (Slack) por ser a primeira e ter um gerador.
+        - Barras 2 e 3 são do tipo PV
+        - Tensão inicial de 1.0 p.u. e ângulo 0.0 para todas as barras (exceto Slack que já tem ângulo 0).
         """
-        # Mapeamento de tipo de barra
-        bus_type_map = {0: 'PQ', 1: 'PV', 2: 'Slack'}
-        
-        # Dados da matriz DBAR: [NB, T, G, VT, Angle, PG, QG, QMIN, QMAX, PLOAD, QLOAD, QBAR]
-        # Índices:             0   1  2   3      4    5   6     7     8      9      10     11
-        bus_data = [
-            [1, 2, 1, 1.0,   0.0,    1.0, 6.9, -9999, 9999.0, 0.0,  0.0,  0.0],
-            [2, 0, 0, 1.0,  -4.98,   0.0, 0.0,   0.0,    0.0, 20.0, 8.5,  0.0],
-            [3, 1, 1, 1.05, -12.72,  0.0, 0.0, -200.0, 250.0, 40.0, 17.0, 0.0],
-            [4, 1, 1, 1.0,   0.0,    0.0, 0.0, -200.0, 250.0, 30.0, 4.0,  0.0],
-            [5, 0, 0, 1.0,  -4.98,   0.0, 0.0,   0.0,    0.0, 30.0, 12.7, 0.0],
-            [6, 0, 0, 1.0,  -12.72,  0.0, 0.0,   0.0,    0.0, 40.0, 17.3, 0.0]
+        self.buses = [
+            Bus(self, id=1, bus_type='Slack'),
+            Bus(self, id=2, theta= -4.98),
+            Bus(self, id=3, theta=-12.72, v=1.05),
+            Bus(self, id=4, theta=  0.0),
+            Bus(self, id=5, theta=-4.98),
+            Bus(self, id=6, theta=-12.72),
         ]
-
-        self.buses = []
-        for row in bus_data:
-            bus_id = int(row[0])
-            bus_type_code = int(row[1])
-            voltage = row[3]
-            angle_deg = row[4]
-            shunt_sh = row[11] # QBAR
-
-            self.buses.append(
-                Bus(self, 
-                    id=bus_id, 
-                    bus_type=bus_type_map[bus_type_code], 
-                    v=voltage, 
-                    theta=math.radians(angle_deg),
-                    Sh=shunt_sh
-                )
-            )
 
     def _create_lines(self):
         """
-        Cria as linhas de transmissão a partir da matriz DLIN.
+        Cria as linhas de transmissão.
+        Suposição: O valor 'cap' na matriz DLIN é a susceptância total da linha (B),
+        portanto b_half = cap / 2. Os valores de R e X foram usados como fornecidos.
         """
-        # Dados da matriz DLIN: [From, T0, r, x, Bsh, ...]
-        # Índices:                0    1   2  3    4
-        line_data = [
-            [1, 2, 1, 10, 0.0],
-            [2, 3, 2, 17, 0.0],
-            [3, 4, 5, 10, 0.0],
-            [4, 5, 1, 15, 0.0],
-            [5, 6, 2, 18, 0.0],
-            [3, 6, 3, 13, 0.0],
-            [1, 5, 1, 14, 0.0],
-            [4, 2, 2, 12, 0.0]
+        self.lines = [
+            # Line(id, from, to, r, x, b_half)
+            Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r=0.01, x=0.1 , flow_max=0.15), 
+            Line(id=2, from_bus=self.buses[1], to_bus=self.buses[2], r=0.02, x=0.17, flow_max=0.15), 
+            Line(id=3, from_bus=self.buses[2], to_bus=self.buses[3], r=0.05, x=0.10, flow_max=0.10), 
+            Line(id=4, from_bus=self.buses[3], to_bus=self.buses[4], r=0.01, x=0.15, flow_max=0.25), 
+            Line(id=5, from_bus=self.buses[4], to_bus=self.buses[5], r=0.02, x=0.18, flow_max=0.20), 
+            Line(id=6, from_bus=self.buses[2], to_bus=self.buses[5], r=0.03, x=0.13, flow_max=0.30), 
+            Line(id=7, from_bus=self.buses[0], to_bus=self.buses[4], r=0.01, x=0.14, flow_max=0.30), 
+            Line(id=8, from_bus=self.buses[3], to_bus=self.buses[1], r=0.02, x=0.12, flow_max=0.20), 
         ]
-        
-        self.lines = []
-        for i, row in enumerate(line_data):
-            from_bus_id = int(row[0])
-            to_bus_id = int(row[1])
-            r = float(row[2])
-            x = float(row[3])
-            b_half = float(row[4]) / 2.0 # Bsh é a susceptância total, b_half é a metade
-
-            self.lines.append(
-                Line(id=i + 1,
-                     from_bus=self.buses[from_bus_id - 1],
-                     to_bus=self.buses[to_bus_id - 1],
-                     r=r,
-                     x=x,
-                     b_half=b_half
-                )
-            )
 
     def _create_generators(self):
         """
-        Cria os geradores a partir da matriz DBAR (onde G=1).
-        A potência ativa (p_input) é retirada da coluna PG.
+        Cria os geradores do sistema.
+        Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_input).
+        Os geradores são apenas alocados às barras.
         """
-        # [NB, T, G, VT, Angle, PG, ...]
-        bus_data = [
-            [1, 2, 1, 1.0, 0.0, 1.0],
-            [3, 1, 1, 1.05, -12.72, 0.0],
-            [4, 1, 1, 1.0, 0.0, 0.0]
+        self.generators = [
+            Generator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50),
+            Generator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70),
+            Generator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60),
         ]
-        
-        self.generators = []
-        gen_id = 1
-        for row in bus_data:
-            # Apenas cria gerador se o indicador G (índice 2) for 1
-            if int(row[2]) == 1:
-                bus_id = int(row[0])
-                p_gen = float(row[5])
-                
-                self.generators.append(
-                    Generator(id=gen_id, 
-                              bus=self.buses[bus_id - 1], 
-                              pb=100, # Base de potência assumida
-                              p_input=p_gen)
-                )
-                gen_id += 1
 
+        for index, bus_object in enumerate(self.buses):
+            Generator(
+                id=1001 + index,
+                bus=bus_object,
+                cost_b_input=10000,
+                pb=self.sb,
+                p_max_input=99999,
+                p_min_input=0
+            )
+    
     def _create_loads(self):
-        """
-        Cria as cargas a partir das colunas PLOAD e QLOAD da matriz DBAR.
-        """
-        # [NB, ..., PLOAD, QLOAD]
-        # Índices: 0        9      10
-        bus_data = [
-            [1, 0.0, 0.0],
-            [2, 20.0, 8.5],
-            [3, 40.0, 17.0],
-            [4, 30.0, 4.0],
-            [5, 30.0, 12.7],
-            [6, 40.0, 17.3]
+        self.loads = [
+            Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5),
+            Load(id=1, bus=self.buses[2], pb=self.sb, p_input=40.0, q_input=17.0),
+            Load(id=1, bus=self.buses[3], pb=self.sb, p_input=30.0, q_input= 4.0),
+            Load(id=1, bus=self.buses[4], pb=self.sb, p_input=30.0, q_input=12.7),
+            Load(id=1, bus=self.buses[5], pb=self.sb, p_input=40.0, q_input=17.3),
         ]
-        
-        self.loads = []
-        load_id = 1
-        for row in bus_data:
-            p_load = float(row[1])
-            q_load = float(row[2])
-            
-            # Apenas cria a carga se houver consumo (P ou Q > 0)
-            if p_load > 0 or q_load > 0:
-                bus_id = int(row[0])
-                self.loads.append(
-                    Load(id=load_id,
-                         bus=self.buses[bus_id - 1],
-                         pb=100, # Base de potência assum
