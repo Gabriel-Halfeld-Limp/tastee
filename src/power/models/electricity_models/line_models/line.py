@@ -33,7 +33,7 @@ class Line:
                 Line._id_counter = self.id + 1
 
         if self.name is None:
-            self.name = f"Line {self.id}"
+            self.name = f"Line_{self.id}"
         else:
             self.name = str(self.name)
 

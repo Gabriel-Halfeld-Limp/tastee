@@ -31,7 +31,7 @@ class Bus:
                 Bus._id_counter = self.id + 1
 
         if self.name is None:
-            self.name = f"Bus {self.id}"
+            self.name = f"Bus_{self.id}"
 
         # Add the bus to the network
         self.network.buses.append(self)
