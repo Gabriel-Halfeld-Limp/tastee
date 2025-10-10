@@ -32,7 +32,7 @@ class Generator:
                 Generator._id_counter = self.id + 1
 
         if self.name is None:
-            self.name = f"Generator {self.id}"
+            self.name = f"Generator_{self.id}"
 
         self.bus.add_generator(self)
         self.network = self.bus.network
