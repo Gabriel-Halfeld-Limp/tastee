@@ -59,7 +59,7 @@ class B6L8(Network):
             Generator(
                 id=1001 + index,
                 bus=bus_object,
-                cost_b_input=10000,
+                cost_b_input=400,
                 pb=self.sb,
                 p_max_input=99999,
                 p_min_input=0

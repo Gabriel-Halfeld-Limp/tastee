@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{include = "tastee_aula_2", from = "src"}]
+packages = [{include = "opf_linear", from = "src"}, {include = "power", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.30.1"
