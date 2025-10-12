@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, Load
+from .. import Network, Bus, Line, Generator, WindGenerator, Load
 class B6L8(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
@@ -53,17 +53,6 @@ class B6L8(Network):
         Generator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50)
         Generator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70)
         Generator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60)
-
-
-        for index, bus_object in enumerate(self.buses):
-            Generator(
-                id=1001 + index,
-                bus=bus_object,
-                cost_b_input=400,
-                pb=self.sb,
-                p_max_input=99999,
-                p_min_input=0
-            )
     
     def _create_loads(self):
         Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5)
@@ -71,3 +60,13 @@ class B6L8(Network):
         Load(id=3, bus=self.buses[3], pb=self.sb, p_input=30.0, q_input= 4.0)
         Load(id=4, bus=self.buses[4], pb=self.sb, p_input=30.0, q_input=12.7)
         Load(id=5, bus=self.buses[5], pb=self.sb, p_input=40.0, q_input=17.3)
+
+        for index, load_object in enumerate(self.loads):
+            Generator(
+                id=1001 + index,
+                bus=load_object.bus,
+                cost_b_input=400,
+                pb=self.sb,
+                p_max_input=99999,
+                p_min_input=0
+            )

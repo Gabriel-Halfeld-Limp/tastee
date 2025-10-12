@@ -1,5 +1,5 @@
 from .. import Network, Bus, Line, Generator, Load
-class System3Bus(Network):
+class B3(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
     """

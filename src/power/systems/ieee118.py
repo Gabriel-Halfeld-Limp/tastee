@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, Load
+from .. import Network, Bus, Line, Generator, WindGenerator, Load
 
 class IEEE118(Network):
     """Class to represent the IEEE 118 bus system.
@@ -27,126 +27,124 @@ class IEEE118(Network):
         keep the order clear and prevent regressions when fields change.
         """
 
-        self.buses = [
-            Bus(self, id=  1,   bus_type='PV',     v=0.955,   theta=10.67,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  2,   bus_type='PQ',     v=0.971,   theta=11.22,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  3,   bus_type='PQ',     v=0.968,   theta=11.56,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  4,   bus_type='PV',     v=0.998,   theta=15.28,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  5,   bus_type='PQ',     v=1.002,   theta=15.73,   Sh=-40.0,   Sb=self.sb),
-            Bus(self, id=  6,   bus_type='PV',     v=0.990,   theta=13.00,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  7,   bus_type='PQ',     v=0.989,   theta=12.56,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  8,   bus_type='PV',     v=1.015,   theta=20.77,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=  9,   bus_type='PQ',     v=1.043,   theta=28.02,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 10,   bus_type='PV',     v=1.050,   theta=35.61,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 11,   bus_type='PQ',     v=0.985,   theta=12.72,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 12,   bus_type='PV',     v=0.990,   theta=12.20,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 13,   bus_type='PQ',     v=0.968,   theta=11.35,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 14,   bus_type='PQ',     v=0.984,   theta=11.50,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 15,   bus_type='PV',     v=0.970,   theta=11.23,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 16,   bus_type='PQ',     v=0.984,   theta=11.91,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 17,   bus_type='PQ',     v=0.995,   theta=13.74,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 18,   bus_type='PV',     v=0.973,   theta=11.53,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 19,   bus_type='PV',     v=0.963,   theta=11.05,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 20,   bus_type='PQ',     v=0.958,   theta=11.93,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 21,   bus_type='PQ',     v=0.959,   theta=13.52,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 22,   bus_type='PQ',     v=0.970,   theta=16.08,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 23,   bus_type='PQ',     v=1.000,   theta=21.00,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 24,   bus_type='PV',     v=0.992,   theta=20.89,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 25,   bus_type='PV',     v=1.050,   theta=27.93,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 26,   bus_type='PV',     v=1.015,   theta=29.71,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 27,   bus_type='PV',     v=0.968,   theta=15.35,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 28,   bus_type='PQ',     v=0.962,   theta=13.62,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 29,   bus_type='PQ',     v=0.963,   theta=12.63,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 30,   bus_type='PQ',     v=0.968,   theta=18.79,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 31,   bus_type='PV',     v=0.967,   theta=12.75,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 32,   bus_type='PV',     v=0.964,   theta=14.80,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 33,   bus_type='PQ',     v=0.972,   theta=10.63,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 34,   bus_type='PV',     v=0.986,   theta=11.30,   Sh= 14.0,   Sb=self.sb),
-            Bus(self, id= 35,   bus_type='PQ',     v=0.981,   theta=10.87,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 36,   bus_type='PV',     v=0.980,   theta=10.87,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 37,   bus_type='PQ',     v=0.992,   theta=11.77,   Sh=-25.0,   Sb=self.sb),
-            Bus(self, id= 38,   bus_type='PQ',     v=0.962,   theta=16.91,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 39,   bus_type='PQ',     v=0.970,   theta= 8.41,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 40,   bus_type='PV',     v=0.970,   theta= 7.35,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 41,   bus_type='PQ',     v=0.967,   theta= 6.92,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 42,   bus_type='PV',     v=0.985,   theta= 8.53,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 43,   bus_type='PQ',     v=0.978,   theta=11.28,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 44,   bus_type='PQ',     v=0.985,   theta=13.82,   Sh= 10.0,   Sb=self.sb),
-            Bus(self, id= 45,   bus_type='PQ',     v=0.987,   theta=15.67,   Sh= 10.0,   Sb=self.sb),
-            Bus(self, id= 46,   bus_type='PV',     v=1.005,   theta=18.49,   Sh= 10.0,   Sb=self.sb),
-            Bus(self, id= 47,   bus_type='PQ',     v=1.017,   theta=20.73,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 48,   bus_type='PQ',     v=1.021,   theta=19.93,   Sh= 15.0,   Sb=self.sb),
-            Bus(self, id= 49,   bus_type='PV',     v=1.025,   theta=20.94,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 50,   bus_type='PQ',     v=1.001,   theta=18.90,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 51,   bus_type='PQ',     v=0.967,   theta=16.28,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 52,   bus_type='PQ',     v=0.957,   theta=15.32,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 53,   bus_type='PQ',     v=0.946,   theta=14.35,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 54,   bus_type='PV',     v=0.955,   theta=15.26,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 55,   bus_type='PV',     v=0.952,   theta=14.97,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 56,   bus_type='PV',     v=0.954,   theta=15.16,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 57,   bus_type='PQ',     v=0.971,   theta=16.36,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 58,   bus_type='PQ',     v=0.959,   theta=15.51,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 59,   bus_type='PV',     v=0.985,   theta=19.37,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 60,   bus_type='PQ',     v=0.993,   theta=23.15,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 61,   bus_type='PV',     v=0.995,   theta=24.04,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 62,   bus_type='PV',     v=0.998,   theta=23.43,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 63,   bus_type='PQ',     v=0.969,   theta=22.75,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 64,   bus_type='PQ',     v=0.984,   theta=24.52,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 65,   bus_type='PV',     v=1.005,   theta=27.65,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 66,   bus_type='PV',     v=1.050,   theta=27.48,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 67,   bus_type='PQ',     v=1.020,   theta=24.84,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 68,   bus_type='PQ',     v=1.003,   theta=27.55,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 69,   bus_type='Slack',  v=1.035,   theta=30.00,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 70,   bus_type='PV',     v=0.984,   theta=22.58,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 71,   bus_type='PQ',     v=0.987,   theta=22.15,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 72,   bus_type='PV',     v=0.980,   theta=20.98,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 73,   bus_type='PV',     v=0.991,   theta=21.94,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 74,   bus_type='PV',     v=0.958,   theta=21.64,   Sh= 12.0,   Sb=self.sb),
-            Bus(self, id= 75,   bus_type='PQ',     v=0.967,   theta=22.91,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 76,   bus_type='PV',     v=0.943,   theta=21.77,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 77,   bus_type='PV',     v=1.006,   theta=26.72,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 78,   bus_type='PQ',     v=1.003,   theta=26.42,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 79,   bus_type='PQ',     v=1.009,   theta=26.72,   Sh= 20.0,   Sb=self.sb),
-            Bus(self, id= 80,   bus_type='PV',     v=1.040,   theta=28.96,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 81,   bus_type='PQ',     v=0.997,   theta=28.10,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 82,   bus_type='PQ',     v=0.989,   theta=27.24,   Sh= 20.0,   Sb=self.sb),
-            Bus(self, id= 83,   bus_type='PQ',     v=0.985,   theta=28.42,   Sh= 10.0,   Sb=self.sb),
-            Bus(self, id= 84,   bus_type='PQ',     v=0.980,   theta=30.95,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 85,   bus_type='PV',     v=0.985,   theta=32.51,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 86,   bus_type='PQ',     v=0.987,   theta=31.14,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 87,   bus_type='PV',     v=1.015,   theta=31.40,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 88,   bus_type='PQ',     v=0.987,   theta=35.64,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 89,   bus_type='PV',     v=1.005,   theta=39.69,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 90,   bus_type='PV',     v=0.985,   theta=33.29,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 91,   bus_type='PV',     v=0.980,   theta=33.31,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 92,   bus_type='PV',     v=0.993,   theta=33.80,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 93,   bus_type='PQ',     v=0.987,   theta=30.79,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 94,   bus_type='PQ',     v=0.991,   theta=28.64,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 95,   bus_type='PQ',     v=0.981,   theta=27.67,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 96,   bus_type='PQ',     v=0.993,   theta=27.51,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 97,   bus_type='PQ',     v=1.011,   theta=27.88,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 98,   bus_type='PQ',     v=1.024,   theta=27.40,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id= 99,   bus_type='PV',     v=1.010,   theta=27.04,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=100,   bus_type='PV',     v=1.017,   theta=28.03,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=101,   bus_type='PQ',     v=0.993,   theta=29.61,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=102,   bus_type='PQ',     v=0.991,   theta=32.30,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=103,   bus_type='PV',     v=1.001,   theta=24.44,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=104,   bus_type='PV',     v=0.971,   theta=21.69,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=105,   bus_type='PV',     v=0.965,   theta=20.57,   Sh= 20.0,   Sb=self.sb),
-            Bus(self, id=106,   bus_type='PQ',     v=0.962,   theta=20.32,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=107,   bus_type='PV',     v=0.952,   theta=17.53,   Sh=  6.0,   Sb=self.sb),
-            Bus(self, id=108,   bus_type='PQ',     v=0.967,   theta=19.38,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=109,   bus_type='PQ',     v=0.967,   theta=18.93,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=110,   bus_type='PV',     v=0.973,   theta=18.09,   Sh=  6.0,   Sb=self.sb),
-            Bus(self, id=111,   bus_type='PV',     v=0.980,   theta=19.74,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=112,   bus_type='PV',     v=0.975,   theta=14.99,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=113,   bus_type='PV',     v=0.993,   theta=13.74,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=114,   bus_type='PQ',     v=0.960,   theta=14.46,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=115,   bus_type='PQ',     v=0.960,   theta=14.46,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=116,   bus_type='PV',     v=1.005,   theta=27.12,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=117,   bus_type='PQ',     v=0.974,   theta=10.67,   Sh=  0.0,   Sb=self.sb),
-            Bus(self, id=118,   bus_type='PQ',     v=0.949,   theta=21.92,   Sh=  0.0,   Sb=self.sb),
-        ]
+        Bus(self, id=  1,   bus_type='PV',     v=0.955,   theta=10.67,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  2,   bus_type='PQ',     v=0.971,   theta=11.22,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  3,   bus_type='PQ',     v=0.968,   theta=11.56,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  4,   bus_type='PV',     v=0.998,   theta=15.28,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  5,   bus_type='PQ',     v=1.002,   theta=15.73,   Sh=-40.0,   Sb=self.sb)
+        Bus(self, id=  6,   bus_type='PV',     v=0.990,   theta=13.00,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  7,   bus_type='PQ',     v=0.989,   theta=12.56,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  8,   bus_type='PV',     v=1.015,   theta=20.77,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=  9,   bus_type='PQ',     v=1.043,   theta=28.02,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 10,   bus_type='PV',     v=1.050,   theta=35.61,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 11,   bus_type='PQ',     v=0.985,   theta=12.72,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 12,   bus_type='PV',     v=0.990,   theta=12.20,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 13,   bus_type='PQ',     v=0.968,   theta=11.35,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 14,   bus_type='PQ',     v=0.984,   theta=11.50,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 15,   bus_type='PV',     v=0.970,   theta=11.23,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 16,   bus_type='PQ',     v=0.984,   theta=11.91,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 17,   bus_type='PQ',     v=0.995,   theta=13.74,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 18,   bus_type='PV',     v=0.973,   theta=11.53,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 19,   bus_type='PV',     v=0.963,   theta=11.05,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 20,   bus_type='PQ',     v=0.958,   theta=11.93,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 21,   bus_type='PQ',     v=0.959,   theta=13.52,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 22,   bus_type='PQ',     v=0.970,   theta=16.08,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 23,   bus_type='PQ',     v=1.000,   theta=21.00,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 24,   bus_type='PV',     v=0.992,   theta=20.89,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 25,   bus_type='PV',     v=1.050,   theta=27.93,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 26,   bus_type='PV',     v=1.015,   theta=29.71,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 27,   bus_type='PV',     v=0.968,   theta=15.35,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 28,   bus_type='PQ',     v=0.962,   theta=13.62,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 29,   bus_type='PQ',     v=0.963,   theta=12.63,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 30,   bus_type='PQ',     v=0.968,   theta=18.79,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 31,   bus_type='PV',     v=0.967,   theta=12.75,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 32,   bus_type='PV',     v=0.964,   theta=14.80,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 33,   bus_type='PQ',     v=0.972,   theta=10.63,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 34,   bus_type='PV',     v=0.986,   theta=11.30,   Sh= 14.0,   Sb=self.sb)
+        Bus(self, id= 35,   bus_type='PQ',     v=0.981,   theta=10.87,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 36,   bus_type='PV',     v=0.980,   theta=10.87,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 37,   bus_type='PQ',     v=0.992,   theta=11.77,   Sh=-25.0,   Sb=self.sb)
+        Bus(self, id= 38,   bus_type='PQ',     v=0.962,   theta=16.91,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 39,   bus_type='PQ',     v=0.970,   theta= 8.41,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 40,   bus_type='PV',     v=0.970,   theta= 7.35,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 41,   bus_type='PQ',     v=0.967,   theta= 6.92,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 42,   bus_type='PV',     v=0.985,   theta= 8.53,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 43,   bus_type='PQ',     v=0.978,   theta=11.28,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 44,   bus_type='PQ',     v=0.985,   theta=13.82,   Sh= 10.0,   Sb=self.sb)
+        Bus(self, id= 45,   bus_type='PQ',     v=0.987,   theta=15.67,   Sh= 10.0,   Sb=self.sb)
+        Bus(self, id= 46,   bus_type='PV',     v=1.005,   theta=18.49,   Sh= 10.0,   Sb=self.sb)
+        Bus(self, id= 47,   bus_type='PQ',     v=1.017,   theta=20.73,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 48,   bus_type='PQ',     v=1.021,   theta=19.93,   Sh= 15.0,   Sb=self.sb)
+        Bus(self, id= 49,   bus_type='PV',     v=1.025,   theta=20.94,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 50,   bus_type='PQ',     v=1.001,   theta=18.90,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 51,   bus_type='PQ',     v=0.967,   theta=16.28,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 52,   bus_type='PQ',     v=0.957,   theta=15.32,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 53,   bus_type='PQ',     v=0.946,   theta=14.35,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 54,   bus_type='PV',     v=0.955,   theta=15.26,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 55,   bus_type='PV',     v=0.952,   theta=14.97,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 56,   bus_type='PV',     v=0.954,   theta=15.16,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 57,   bus_type='PQ',     v=0.971,   theta=16.36,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 58,   bus_type='PQ',     v=0.959,   theta=15.51,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 59,   bus_type='PV',     v=0.985,   theta=19.37,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 60,   bus_type='PQ',     v=0.993,   theta=23.15,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 61,   bus_type='PV',     v=0.995,   theta=24.04,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 62,   bus_type='PV',     v=0.998,   theta=23.43,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 63,   bus_type='PQ',     v=0.969,   theta=22.75,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 64,   bus_type='PQ',     v=0.984,   theta=24.52,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 65,   bus_type='PV',     v=1.005,   theta=27.65,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 66,   bus_type='PV',     v=1.050,   theta=27.48,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 67,   bus_type='PQ',     v=1.020,   theta=24.84,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 68,   bus_type='PQ',     v=1.003,   theta=27.55,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 69,   bus_type='Slack',  v=1.035,   theta=30.00,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 70,   bus_type='PV',     v=0.984,   theta=22.58,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 71,   bus_type='PQ',     v=0.987,   theta=22.15,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 72,   bus_type='PV',     v=0.980,   theta=20.98,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 73,   bus_type='PV',     v=0.991,   theta=21.94,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 74,   bus_type='PV',     v=0.958,   theta=21.64,   Sh= 12.0,   Sb=self.sb)
+        Bus(self, id= 75,   bus_type='PQ',     v=0.967,   theta=22.91,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 76,   bus_type='PV',     v=0.943,   theta=21.77,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 77,   bus_type='PV',     v=1.006,   theta=26.72,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 78,   bus_type='PQ',     v=1.003,   theta=26.42,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 79,   bus_type='PQ',     v=1.009,   theta=26.72,   Sh= 20.0,   Sb=self.sb)
+        Bus(self, id= 80,   bus_type='PV',     v=1.040,   theta=28.96,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 81,   bus_type='PQ',     v=0.997,   theta=28.10,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 82,   bus_type='PQ',     v=0.989,   theta=27.24,   Sh= 20.0,   Sb=self.sb)
+        Bus(self, id= 83,   bus_type='PQ',     v=0.985,   theta=28.42,   Sh= 10.0,   Sb=self.sb)
+        Bus(self, id= 84,   bus_type='PQ',     v=0.980,   theta=30.95,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 85,   bus_type='PV',     v=0.985,   theta=32.51,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 86,   bus_type='PQ',     v=0.987,   theta=31.14,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 87,   bus_type='PV',     v=1.015,   theta=31.40,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 88,   bus_type='PQ',     v=0.987,   theta=35.64,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 89,   bus_type='PV',     v=1.005,   theta=39.69,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 90,   bus_type='PV',     v=0.985,   theta=33.29,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 91,   bus_type='PV',     v=0.980,   theta=33.31,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 92,   bus_type='PV',     v=0.993,   theta=33.80,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 93,   bus_type='PQ',     v=0.987,   theta=30.79,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 94,   bus_type='PQ',     v=0.991,   theta=28.64,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 95,   bus_type='PQ',     v=0.981,   theta=27.67,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 96,   bus_type='PQ',     v=0.993,   theta=27.51,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 97,   bus_type='PQ',     v=1.011,   theta=27.88,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 98,   bus_type='PQ',     v=1.024,   theta=27.40,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id= 99,   bus_type='PV',     v=1.010,   theta=27.04,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=100,   bus_type='PV',     v=1.017,   theta=28.03,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=101,   bus_type='PQ',     v=0.993,   theta=29.61,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=102,   bus_type='PQ',     v=0.991,   theta=32.30,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=103,   bus_type='PV',     v=1.001,   theta=24.44,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=104,   bus_type='PV',     v=0.971,   theta=21.69,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=105,   bus_type='PV',     v=0.965,   theta=20.57,   Sh= 20.0,   Sb=self.sb)
+        Bus(self, id=106,   bus_type='PQ',     v=0.962,   theta=20.32,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=107,   bus_type='PV',     v=0.952,   theta=17.53,   Sh=  6.0,   Sb=self.sb)
+        Bus(self, id=108,   bus_type='PQ',     v=0.967,   theta=19.38,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=109,   bus_type='PQ',     v=0.967,   theta=18.93,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=110,   bus_type='PV',     v=0.973,   theta=18.09,   Sh=  6.0,   Sb=self.sb)
+        Bus(self, id=111,   bus_type='PV',     v=0.980,   theta=19.74,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=112,   bus_type='PV',     v=0.975,   theta=14.99,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=113,   bus_type='PV',     v=0.993,   theta=13.74,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=114,   bus_type='PQ',     v=0.960,   theta=14.46,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=115,   bus_type='PQ',     v=0.960,   theta=14.46,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=116,   bus_type='PV',     v=1.005,   theta=27.12,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=117,   bus_type='PQ',     v=0.974,   theta=10.67,   Sh=  0.0,   Sb=self.sb)
+        Bus(self, id=118,   bus_type='PQ',     v=0.949,   theta=21.92,   Sh=  0.0,   Sb=self.sb)
 
     def _create_lines(self):
         """Create Line objects from the DLIN matrix entries.
@@ -351,86 +349,60 @@ class IEEE118(Network):
         """
 
         # Conventional Generators from DGER data
-        self.generators = [
-            Generator(id=  1,   bus=self.buses[  0],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 130.0,   q_min_input=  -5.0,   q_max_input=  15.0,   cost_b_input=  1.0),
-            Generator(id=  4,   bus=self.buses[  3],   pb=self.sb,   p_input= -9.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id=  6,   bus=self.buses[  5],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 150.0,   q_min_input= -13.0,   q_max_input=  50.0,   cost_b_input=  6.0),
-            Generator(id=  8,   bus=self.buses[  7],   pb=self.sb,   p_input=-28.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 470.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=  8.0),
-            Generator(id= 10,   bus=self.buses[  9],   pb=self.sb,   p_input=450.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-147.0,   q_max_input= 200.0,   cost_b_input=400.0),
-            Generator(id= 12,   bus=self.buses[ 11],   pb=self.sb,   p_input= 85.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -35.0,   q_max_input= 120.0,   cost_b_input=400.0),
-            Generator(id= 15,   bus=self.buses[ 14],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 450.0,   q_min_input= -10.0,   q_max_input=  30.0,   cost_b_input= 15.0),
-            Generator(id= 18,   bus=self.buses[ 17],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -16.0,   q_max_input=  50.0,   cost_b_input=400.0),
-            Generator(id= 19,   bus=self.buses[ 18],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0),
-            Generator(id= 24,   bus=self.buses[ 23],   pb=self.sb,   p_input=-13.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 250.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 24.0),
-            Generator(id= 25,   bus=self.buses[ 24],   pb=self.sb,   p_input=220.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -47.0,   q_max_input= 140.0,   cost_b_input=400.0),
-            Generator(id= 26,   bus=self.buses[ 25],   pb=self.sb,   p_input=314.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-1000.0,   q_max_input=1000.0,   cost_b_input=400.0),
-            Generator(id= 27,   bus=self.buses[ 26],   pb=self.sb,   p_input= -9.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id= 31,   bus=self.buses[ 30],   pb=self.sb,   p_input=  7.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id= 32,   bus=self.buses[ 31],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -14.0,   q_max_input=  42.0,   cost_b_input=400.0),
-            Generator(id= 34,   bus=self.buses[ 33],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0),
-            Generator(id= 36,   bus=self.buses[ 35],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0),
-            Generator(id= 40,   bus=self.buses[ 39],   pb=self.sb,   p_input=-46.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id= 42,   bus=self.buses[ 41],   pb=self.sb,   p_input=-59.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 140.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 42.0),
-            Generator(id= 46,   bus=self.buses[ 45],   pb=self.sb,   p_input= 19.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 120.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input= 46.0),
-            Generator(id= 49,   bus=self.buses[ 48],   pb=self.sb,   p_input=204.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 450.0,   q_min_input= -85.0,   q_max_input= 210.0,   cost_b_input= 49.0),
-            Generator(id= 54,   bus=self.buses[ 53],   pb=self.sb,   p_input= 48.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 570.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 54.0),
-            Generator(id= 55,   bus=self.buses[ 54],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0),
-            Generator(id= 56,   bus=self.buses[ 55],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  15.0,   cost_b_input=400.0),
-            Generator(id= 59,   bus=self.buses[ 58],   pb=self.sb,   p_input=155.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -60.0,   q_max_input= 180.0,   cost_b_input=400.0),
-            Generator(id= 61,   bus=self.buses[ 60],   pb=self.sb,   p_input=160.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id= 62,   bus=self.buses[ 61],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -20.0,   q_max_input=  20.0,   cost_b_input=400.0),
-            Generator(id= 65,   bus=self.buses[ 64],   pb=self.sb,   p_input=391.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -67.0,   q_max_input= 200.0,   cost_b_input=400.0),
-            Generator(id= 66,   bus=self.buses[ 65],   pb=self.sb,   p_input=392.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -67.0,   q_max_input= 200.0,   cost_b_input=400.0),
-            Generator(id= 69,   bus=self.buses[ 68],   pb=self.sb,   p_input=516.4,   q_input=0.0,   p_min_input=0.0,   p_max_input=1000.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 69.0),
-            Generator(id= 70,   bus=self.buses[ 69],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -10.0,   q_max_input=  32.0,   cost_b_input=400.0),
-            Generator(id= 72,   bus=self.buses[ 71],   pb=self.sb,   p_input=-12.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0),
-            Generator(id= 73,   bus=self.buses[ 72],   pb=self.sb,   p_input= -6.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0),
-            Generator(id= 74,   bus=self.buses[ 73],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -6.0,   q_max_input=   9.0,   cost_b_input=400.0),
-            Generator(id= 76,   bus=self.buses[ 75],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0),
-            Generator(id= 77,   bus=self.buses[ 76],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -20.0,   q_max_input=  70.0,   cost_b_input=400.0),
-            Generator(id= 80,   bus=self.buses[ 79],   pb=self.sb,   p_input=477.0,   q_input=0.0,   p_min_input=0.0,   p_max_input=1000.0,   q_min_input=-165.0,   q_max_input= 280.0,   cost_b_input= 80.0),
-            Generator(id= 85,   bus=self.buses[ 84],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 300.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input= 85.0),
-            Generator(id= 87,   bus=self.buses[ 86],   pb=self.sb,   p_input=  4.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0),
-            Generator(id= 89,   bus=self.buses[ 88],   pb=self.sb,   p_input=607.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-210.0,   q_max_input= 300.0,   cost_b_input=400.0),
-            Generator(id= 90,   bus=self.buses[ 89],   pb=self.sb,   p_input=-85.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 250.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 90.0),
-            Generator(id= 91,   bus=self.buses[ 90],   pb=self.sb,   p_input=-10.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0),
-            Generator(id= 92,   bus=self.buses[ 91],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -3.0,   q_max_input=   9.0,   cost_b_input=400.0),
-            Generator(id= 99,   bus=self.buses[ 98],   pb=self.sb,   p_input=-42.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0),
-            Generator(id=100,   bus=self.buses[ 99],   pb=self.sb,   p_input=252.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -50.0,   q_max_input= 155.0,   cost_b_input=400.0),
-            Generator(id=103,   bus=self.buses[102],   pb=self.sb,   p_input= 40.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -15.0,   q_max_input=  40.0,   cost_b_input=400.0),
-            Generator(id=104,   bus=self.buses[103],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0),
-            Generator(id=105,   bus=self.buses[104],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0),
-            Generator(id=107,   bus=self.buses[106],   pb=self.sb,   p_input=-22.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-200.0,   q_max_input= 200.0,   cost_b_input=400.0),
-            Generator(id=110,   bus=self.buses[109],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0),
-            Generator(id=111,   bus=self.buses[110],   pb=self.sb,   p_input= 36.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0),
-            Generator(id=112,   bus=self.buses[111],   pb=self.sb,   p_input=-43.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0),
-            Generator(id=113,   bus=self.buses[112],   pb=self.sb,   p_input= -6.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 200.0,   cost_b_input=400.0),
-            Generator(id=116,   bus=self.buses[115],   pb=self.sb,   p_input=-184.0,  q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-1000.0,  q_max_input=1000.0,   cost_b_input=400.0),
-        ]
-
-        # Wind Generators from DGW data
-        Generator(id=1001,   bus=self.buses[  0],   pb=self.sb,   p_min_input=0.0,   p_max_input=10.0,   cost_b_input=0.0)
-        Generator(id=1008,   bus=self.buses[  7],   pb=self.sb,   p_min_input=0.0,   p_max_input=10.0,   cost_b_input=0.0)
-        Generator(id=1015,   bus=self.buses[ 14],   pb=self.sb,   p_min_input=0.0,   p_max_input=15.0,   cost_b_input=0.0)
-        Generator(id=1024,   bus=self.buses[ 23],   pb=self.sb,   p_min_input=0.0,   p_max_input=15.0,   cost_b_input=0.0)
-        Generator(id=1054,   bus=self.buses[ 53],   pb=self.sb,   p_min_input=0.0,   p_max_input=30.0,   cost_b_input=0.0)
-        Generator(id=1059,   bus=self.buses[ 58],   pb=self.sb,   p_min_input=0.0,   p_max_input=20.0,   cost_b_input=0.0)
-        Generator(id=1069,   bus=self.buses[ 68],   pb=self.sb,   p_min_input=0.0,   p_max_input=20.0,   cost_b_input=0.0)
-        Generator(id=1074,   bus=self.buses[ 73],   pb=self.sb,   p_min_input=0.0,   p_max_input=10.0,   cost_b_input=0.0)
-        Generator(id=1080,   bus=self.buses[ 79],   pb=self.sb,   p_min_input=0.0,   p_max_input=15.0,   cost_b_input=0.0)
-        Generator(id=1085,   bus=self.buses[ 84],   pb=self.sb,   p_min_input=0.0,   p_max_input=10.0,   cost_b_input=0.0)
-        Generator(id=1110,   bus=self.buses[109],   pb=self.sb,   p_min_input=0.0,   p_max_input=20.0,   cost_b_input=0.0)
-
-        # Deficit Generators:
-        for index, bus_object in enumerate(self.buses):
-            Generator(
-                id=2001 + index,
-                bus=bus_object,
-                cost_b_input=400,
-                pb=self.sb,
-                p_max_input=99999,
-                p_min_input=0
-            )
+        Generator(id= 1,   bus=self.buses[  0],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 130.0,   q_min_input=  -5.0,   q_max_input=  15.0,   cost_b_input=  1.0)
+        Generator(id= 2,   bus=self.buses[  3],   pb=self.sb,   p_input= -9.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id= 3,   bus=self.buses[  5],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 150.0,   q_min_input= -13.0,   q_max_input=  50.0,   cost_b_input=  6.0)
+        Generator(id= 4,   bus=self.buses[  7],   pb=self.sb,   p_input=-28.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 470.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=  8.0)
+        Generator(id= 5,   bus=self.buses[  9],   pb=self.sb,   p_input=450.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-147.0,   q_max_input= 200.0,   cost_b_input=400.0)
+        Generator(id= 6,   bus=self.buses[ 11],   pb=self.sb,   p_input= 85.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -35.0,   q_max_input= 120.0,   cost_b_input=400.0)
+        Generator(id= 7,   bus=self.buses[ 14],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 450.0,   q_min_input= -10.0,   q_max_input=  30.0,   cost_b_input= 15.0)
+        Generator(id= 8,   bus=self.buses[ 17],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -16.0,   q_max_input=  50.0,   cost_b_input=400.0)
+        Generator(id= 9,   bus=self.buses[ 18],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0)
+        Generator(id=10,   bus=self.buses[ 23],   pb=self.sb,   p_input=-13.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 250.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 24.0)
+        Generator(id=11,   bus=self.buses[ 24],   pb=self.sb,   p_input=220.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -47.0,   q_max_input= 140.0,   cost_b_input=400.0)
+        Generator(id=12,   bus=self.buses[ 25],   pb=self.sb,   p_input=314.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-1000.0,   q_max_input=1000.0,  cost_b_input=400.0)
+        Generator(id=13,   bus=self.buses[ 26],   pb=self.sb,   p_input= -9.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id=14,   bus=self.buses[ 30],   pb=self.sb,   p_input=  7.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id=15,   bus=self.buses[ 31],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -14.0,   q_max_input=  42.0,   cost_b_input=400.0)
+        Generator(id=16,   bus=self.buses[ 33],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0)
+        Generator(id=17,   bus=self.buses[ 35],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  24.0,   cost_b_input=400.0)
+        Generator(id=18,   bus=self.buses[ 39],   pb=self.sb,   p_input=-46.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id=19,   bus=self.buses[ 41],   pb=self.sb,   p_input=-59.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 140.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 42.0)
+        Generator(id=20,   bus=self.buses[ 45],   pb=self.sb,   p_input= 19.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 120.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input= 46.0)
+        Generator(id=21,   bus=self.buses[ 48],   pb=self.sb,   p_input=204.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 450.0,   q_min_input= -85.0,   q_max_input= 210.0,   cost_b_input= 49.0)
+        Generator(id=22,   bus=self.buses[ 53],   pb=self.sb,   p_input= 48.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 570.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 54.0)
+        Generator(id=23,   bus=self.buses[ 54],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0)
+        Generator(id=24,   bus=self.buses[ 55],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  15.0,   cost_b_input=400.0)
+        Generator(id=25,   bus=self.buses[ 58],   pb=self.sb,   p_input=155.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -60.0,   q_max_input= 180.0,   cost_b_input=400.0)
+        Generator(id=26,   bus=self.buses[ 60],   pb=self.sb,   p_input=160.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id=27,   bus=self.buses[ 61],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -20.0,   q_max_input=  20.0,   cost_b_input=400.0)
+        Generator(id=28,   bus=self.buses[ 64],   pb=self.sb,   p_input=391.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -67.0,   q_max_input= 200.0,   cost_b_input=400.0)
+        Generator(id=29,   bus=self.buses[ 65],   pb=self.sb,   p_input=392.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -67.0,   q_max_input= 200.0,   cost_b_input=400.0)
+        Generator(id=30,   bus=self.buses[ 68],   pb=self.sb,   p_input=516.4,   q_input=0.0,   p_min_input=0.0,   p_max_input=1000.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 69.0)
+        Generator(id=31,   bus=self.buses[ 69],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -10.0,   q_max_input=  32.0,   cost_b_input=400.0)
+        Generator(id=32,   bus=self.buses[ 71],   pb=self.sb,   p_input=-12.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0)
+        Generator(id=33,   bus=self.buses[ 72],   pb=self.sb,   p_input= -6.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0)
+        Generator(id=34,   bus=self.buses[ 73],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -6.0,   q_max_input=   9.0,   cost_b_input=400.0)
+        Generator(id=35,   bus=self.buses[ 75],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0)
+        Generator(id=36,   bus=self.buses[ 76],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -20.0,   q_max_input=  70.0,   cost_b_input=400.0)
+        Generator(id=37,   bus=self.buses[ 79],   pb=self.sb,   p_input=477.0,   q_input=0.0,   p_min_input=0.0,   p_max_input=1000.0,   q_min_input=-165.0,   q_max_input= 280.0,   cost_b_input= 80.0)
+        Generator(id=38,   bus=self.buses[ 84],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 300.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input= 85.0)
+        Generator(id=39,   bus=self.buses[ 86],   pb=self.sb,   p_input=  4.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0)
+        Generator(id=40,   bus=self.buses[ 88],   pb=self.sb,   p_input=607.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-210.0,   q_max_input= 300.0,   cost_b_input=400.0)
+        Generator(id=41,   bus=self.buses[ 89],   pb=self.sb,   p_input=-85.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 250.0,   q_min_input=-300.0,   q_max_input= 300.0,   cost_b_input= 90.0)
+        Generator(id=42,   bus=self.buses[ 90],   pb=self.sb,   p_input=-10.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0)
+        Generator(id=43,   bus=self.buses[ 91],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -3.0,   q_max_input=   9.0,   cost_b_input=400.0)
+        Generator(id=44,   bus=self.buses[ 98],   pb=self.sb,   p_input=-42.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 100.0,   cost_b_input=400.0)
+        Generator(id=45,   bus=self.buses[ 99],   pb=self.sb,   p_input=252.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -50.0,   q_max_input= 155.0,   cost_b_input=400.0)
+        Generator(id=46,   bus=self.buses[102],   pb=self.sb,   p_input= 40.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input= -15.0,   q_max_input=  40.0,   cost_b_input=400.0)
+        Generator(id=47,   bus=self.buses[103],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0)
+        Generator(id=48,   bus=self.buses[104],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0)
+        Generator(id=49,   bus=self.buses[106],   pb=self.sb,   p_input=-22.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-200.0,   q_max_input= 200.0,   cost_b_input=400.0)
+        Generator(id=50,   bus=self.buses[109],   pb=self.sb,   p_input=  0.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=  -8.0,   q_max_input=  23.0,   cost_b_input=400.0)
+        Generator(id=51,   bus=self.buses[110],   pb=self.sb,   p_input= 36.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0)
+        Generator(id=52,   bus=self.buses[111],   pb=self.sb,   p_input=-43.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input=1000.0,   cost_b_input=400.0)
+        Generator(id=53,   bus=self.buses[112],   pb=self.sb,   p_input= -6.0,   q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-100.0,   q_max_input= 200.0,   cost_b_input=400.0)
+        Generator(id=54,   bus=self.buses[115],   pb=self.sb,   p_input=-184.0,  q_input=0.0,   p_min_input=0.0,   p_max_input= 100.0,   q_min_input=-1000.0,  q_max_input=1000.0,   cost_b_input=400.0)
 
     def _create_loads(self):
         """Create Load objects using the PLOAD/QLOAD columns from DBAR.
@@ -440,99 +412,109 @@ class IEEE118(Network):
         base `self.sb` so that per-unit properties are consistent.
         """
 
-        self.loads = [
-            Load(id=  1,   bus=self.buses[  0],   pb=self.sb,   p_input= 51.0,   q_input=27.0),
-            Load(id=  2,   bus=self.buses[  1],   pb=self.sb,   p_input= 20.0,   q_input= 9.0),
-            Load(id=  3,   bus=self.buses[  2],   pb=self.sb,   p_input= 39.0,   q_input=10.0),
-            Load(id=  4,   bus=self.buses[  3],   pb=self.sb,   p_input= 30.0,   q_input=12.0),
-            Load(id=  5,   bus=self.buses[  5],   pb=self.sb,   p_input= 52.0,   q_input=22.0),
-            Load(id=  6,   bus=self.buses[  6],   pb=self.sb,   p_input= 19.0,   q_input= 2.0),
-            Load(id=  7,   bus=self.buses[ 10],   pb=self.sb,   p_input= 70.0,   q_input=23.0),
-            Load(id=  8,   bus=self.buses[ 11],   pb=self.sb,   p_input= 47.0,   q_input=10.0),
-            Load(id=  9,   bus=self.buses[ 12],   pb=self.sb,   p_input= 34.0,   q_input=16.0),
-            Load(id= 10,   bus=self.buses[ 13],   pb=self.sb,   p_input= 14.0,   q_input= 1.0),
-            Load(id= 11,   bus=self.buses[ 14],   pb=self.sb,   p_input= 90.0,   q_input=30.0),
-            Load(id= 12,   bus=self.buses[ 15],   pb=self.sb,   p_input= 25.0,   q_input=10.0),
-            Load(id= 13,   bus=self.buses[ 16],   pb=self.sb,   p_input= 11.0,   q_input= 3.0),
-            Load(id= 14,   bus=self.buses[ 17],   pb=self.sb,   p_input= 60.0,   q_input=34.0),
-            Load(id= 15,   bus=self.buses[ 18],   pb=self.sb,   p_input= 45.0,   q_input=25.0),
-            Load(id= 16,   bus=self.buses[ 19],   pb=self.sb,   p_input= 18.0,   q_input= 3.0),
-            Load(id= 17,   bus=self.buses[ 20],   pb=self.sb,   p_input= 14.0,   q_input= 8.0),
-            Load(id= 18,   bus=self.buses[ 21],   pb=self.sb,   p_input= 10.0,   q_input= 5.0),
-            Load(id= 19,   bus=self.buses[ 22],   pb=self.sb,   p_input=  7.0,   q_input= 3.0),
-            Load(id= 20,   bus=self.buses[ 26],   pb=self.sb,   p_input= 62.0,   q_input=13.0),
-            Load(id= 21,   bus=self.buses[ 27],   pb=self.sb,   p_input= 17.0,   q_input= 7.0),
-            Load(id= 22,   bus=self.buses[ 28],   pb=self.sb,   p_input= 24.0,   q_input= 4.0),
-            Load(id= 23,   bus=self.buses[ 30],   pb=self.sb,   p_input= 43.0,   q_input=27.0),
-            Load(id= 24,   bus=self.buses[ 31],   pb=self.sb,   p_input= 59.0,   q_input=23.0),
-            Load(id= 25,   bus=self.buses[ 32],   pb=self.sb,   p_input= 23.0,   q_input= 9.0),
-            Load(id= 26,   bus=self.buses[ 33],   pb=self.sb,   p_input= 59.0,   q_input=26.0),
-            Load(id= 27,   bus=self.buses[ 34],   pb=self.sb,   p_input= 33.0,   q_input= 9.0),
-            Load(id= 28,   bus=self.buses[ 35],   pb=self.sb,   p_input= 31.0,   q_input=17.0),
-            Load(id= 29,   bus=self.buses[ 38],   pb=self.sb,   p_input= 27.0,   q_input=11.0),
-            Load(id= 30,   bus=self.buses[ 39],   pb=self.sb,   p_input= 20.0,   q_input=23.0),
-            Load(id= 31,   bus=self.buses[ 40],   pb=self.sb,   p_input= 37.0,   q_input=10.0),
-            Load(id= 32,   bus=self.buses[ 41],   pb=self.sb,   p_input= 37.0,   q_input=23.0),
-            Load(id= 33,   bus=self.buses[ 42],   pb=self.sb,   p_input= 18.0,   q_input= 7.0),
-            Load(id= 34,   bus=self.buses[ 43],   pb=self.sb,   p_input= 16.0,   q_input= 8.0),
-            Load(id= 35,   bus=self.buses[ 44],   pb=self.sb,   p_input= 53.0,   q_input=22.0),
-            Load(id= 36,   bus=self.buses[ 45],   pb=self.sb,   p_input= 28.0,   q_input=10.0),
-            Load(id= 37,   bus=self.buses[ 46],   pb=self.sb,   p_input= 34.0,   q_input= 0.0),
-            Load(id= 38,   bus=self.buses[ 47],   pb=self.sb,   p_input= 20.0,   q_input=11.0),
-            Load(id= 39,   bus=self.buses[ 48],   pb=self.sb,   p_input= 87.0,   q_input=30.0),
-            Load(id= 40,   bus=self.buses[ 49],   pb=self.sb,   p_input= 17.0,   q_input= 4.0),
-            Load(id= 41,   bus=self.buses[ 50],   pb=self.sb,   p_input= 17.0,   q_input= 8.0),
-            Load(id= 42,   bus=self.buses[ 51],   pb=self.sb,   p_input= 18.0,   q_input= 5.0),
-            Load(id= 43,   bus=self.buses[ 52],   pb=self.sb,   p_input= 23.0,   q_input=11.0),
-            Load(id= 44,   bus=self.buses[ 53],   pb=self.sb,   p_input=113.0,   q_input=32.0),
-            Load(id= 45,   bus=self.buses[ 54],   pb=self.sb,   p_input= 63.0,   q_input=22.0),
-            Load(id= 46,   bus=self.buses[ 55],   pb=self.sb,   p_input= 84.0,   q_input=18.0),
-            Load(id= 47,   bus=self.buses[ 56],   pb=self.sb,   p_input= 12.0,   q_input= 3.0),
-            Load(id= 48,   bus=self.buses[ 57],   pb=self.sb,   p_input= 12.0,   q_input= 3.0),
-            Load(id= 49,   bus=self.buses[ 58],   pb=self.sb,   p_input=277.0,   q_input=113.0),
-            Load(id= 50,   bus=self.buses[ 59],   pb=self.sb,   p_input= 78.0,   q_input= 3.0),
-            Load(id= 51,   bus=self.buses[ 61],   pb=self.sb,   p_input= 77.0,   q_input=14.0),
-            Load(id= 52,   bus=self.buses[ 65],   pb=self.sb,   p_input= 39.0,   q_input=18.0),
-            Load(id= 53,   bus=self.buses[ 66],   pb=self.sb,   p_input= 28.0,   q_input= 7.0),
-            Load(id= 54,   bus=self.buses[ 69],   pb=self.sb,   p_input= 66.0,   q_input=20.0),
-            Load(id= 55,   bus=self.buses[ 73],   pb=self.sb,   p_input= 68.0,   q_input=27.0),
-            Load(id= 56,   bus=self.buses[ 74],   pb=self.sb,   p_input= 47.0,   q_input=11.0),
-            Load(id= 57,   bus=self.buses[ 75],   pb=self.sb,   p_input= 68.0,   q_input=36.0),
-            Load(id= 58,   bus=self.buses[ 76],   pb=self.sb,   p_input= 61.0,   q_input=28.0),
-            Load(id= 59,   bus=self.buses[ 77],   pb=self.sb,   p_input= 71.0,   q_input=26.0),
-            Load(id= 60,   bus=self.buses[ 78],   pb=self.sb,   p_input= 39.0,   q_input=32.0),
-            Load(id= 61,   bus=self.buses[ 79],   pb=self.sb,   p_input=130.0,   q_input=26.0),
-            Load(id= 62,   bus=self.buses[ 81],   pb=self.sb,   p_input= 54.0,   q_input=27.0),
-            Load(id= 63,   bus=self.buses[ 82],   pb=self.sb,   p_input= 20.0,   q_input=10.0),
-            Load(id= 64,   bus=self.buses[ 83],   pb=self.sb,   p_input= 11.0,   q_input= 7.0),
-            Load(id= 65,   bus=self.buses[ 84],   pb=self.sb,   p_input= 24.0,   q_input=15.0),
-            Load(id= 66,   bus=self.buses[ 85],   pb=self.sb,   p_input= 21.0,   q_input=10.0),
-            Load(id= 67,   bus=self.buses[ 87],   pb=self.sb,   p_input= 48.0,   q_input=10.0),
-            Load(id= 68,   bus=self.buses[ 89],   pb=self.sb,   p_input= 78.0,   q_input=42.0),
-            Load(id= 69,   bus=self.buses[ 91],   pb=self.sb,   p_input= 65.0,   q_input=10.0),
-            Load(id= 70,   bus=self.buses[ 92],   pb=self.sb,   p_input= 12.0,   q_input= 7.0),
-            Load(id= 71,   bus=self.buses[ 93],   pb=self.sb,   p_input= 30.0,   q_input=16.0),
-            Load(id= 72,   bus=self.buses[ 94],   pb=self.sb,   p_input= 42.0,   q_input=31.0),
-            Load(id= 73,   bus=self.buses[ 95],   pb=self.sb,   p_input= 38.0,   q_input=15.0),
-            Load(id= 74,   bus=self.buses[ 96],   pb=self.sb,   p_input= 15.0,   q_input= 9.0),
-            Load(id= 75,   bus=self.buses[ 97],   pb=self.sb,   p_input= 34.0,   q_input= 8.0),
-            Load(id= 76,   bus=self.buses[ 99],   pb=self.sb,   p_input= 37.0,   q_input=18.0),
-            Load(id= 77,   bus=self.buses[100],   pb=self.sb,   p_input= 22.0,   q_input=15.0),
-            Load(id= 78,   bus=self.buses[101],   pb=self.sb,   p_input=  5.0,   q_input= 3.0),
-            Load(id= 79,   bus=self.buses[102],   pb=self.sb,   p_input= 23.0,   q_input=16.0),
-            Load(id= 80,   bus=self.buses[103],   pb=self.sb,   p_input= 38.0,   q_input=25.0),
-            Load(id= 81,   bus=self.buses[104],   pb=self.sb,   p_input= 31.0,   q_input=26.0),
-            Load(id= 82,   bus=self.buses[105],   pb=self.sb,   p_input= 43.0,   q_input=16.0),
-            Load(id= 83,   bus=self.buses[106],   pb=self.sb,   p_input= 28.0,   q_input=12.0),
-            Load(id= 84,   bus=self.buses[107],   pb=self.sb,   p_input=  2.0,   q_input= 1.0),
-            Load(id= 85,   bus=self.buses[108],   pb=self.sb,   p_input=  8.0,   q_input= 3.0),
-            Load(id= 86,   bus=self.buses[109],   pb=self.sb,   p_input= 39.0,   q_input=30.0),
-            Load(id= 87,   bus=self.buses[111],   pb=self.sb,   p_input= 25.0,   q_input=13.0),
-            Load(id= 88,   bus=self.buses[113],   pb=self.sb,   p_input=  8.0,   q_input= 3.0),
-            Load(id= 89,   bus=self.buses[114],   pb=self.sb,   p_input= 22.0,   q_input= 7.0),
-            Load(id= 90,   bus=self.buses[116],   pb=self.sb,   p_input= 20.0,   q_input= 8.0),
-            Load(id= 91,   bus=self.buses[117],   pb=self.sb,   p_input= 33.0,   q_input=15.0),
-        ]
+        Load(id=  1,   bus=self.buses[  0],   pb=self.sb,   p_input= 51.0,   q_input=27.0)
+        Load(id=  2,   bus=self.buses[  1],   pb=self.sb,   p_input= 20.0,   q_input= 9.0)
+        Load(id=  3,   bus=self.buses[  2],   pb=self.sb,   p_input= 39.0,   q_input=10.0)
+        Load(id=  4,   bus=self.buses[  3],   pb=self.sb,   p_input= 30.0,   q_input=12.0)
+        Load(id=  5,   bus=self.buses[  5],   pb=self.sb,   p_input= 52.0,   q_input=22.0)
+        Load(id=  6,   bus=self.buses[  6],   pb=self.sb,   p_input= 19.0,   q_input= 2.0)
+        Load(id=  7,   bus=self.buses[ 10],   pb=self.sb,   p_input= 70.0,   q_input=23.0)
+        Load(id=  8,   bus=self.buses[ 11],   pb=self.sb,   p_input= 47.0,   q_input=10.0)
+        Load(id=  9,   bus=self.buses[ 12],   pb=self.sb,   p_input= 34.0,   q_input=16.0)
+        Load(id= 10,   bus=self.buses[ 13],   pb=self.sb,   p_input= 14.0,   q_input= 1.0)
+        Load(id= 11,   bus=self.buses[ 14],   pb=self.sb,   p_input= 90.0,   q_input=30.0)
+        Load(id= 12,   bus=self.buses[ 15],   pb=self.sb,   p_input= 25.0,   q_input=10.0)
+        Load(id= 13,   bus=self.buses[ 16],   pb=self.sb,   p_input= 11.0,   q_input= 3.0)
+        Load(id= 14,   bus=self.buses[ 17],   pb=self.sb,   p_input= 60.0,   q_input=34.0)
+        Load(id= 15,   bus=self.buses[ 18],   pb=self.sb,   p_input= 45.0,   q_input=25.0)
+        Load(id= 16,   bus=self.buses[ 19],   pb=self.sb,   p_input= 18.0,   q_input= 3.0)
+        Load(id= 17,   bus=self.buses[ 20],   pb=self.sb,   p_input= 14.0,   q_input= 8.0)
+        Load(id= 18,   bus=self.buses[ 21],   pb=self.sb,   p_input= 10.0,   q_input= 5.0)
+        Load(id= 19,   bus=self.buses[ 22],   pb=self.sb,   p_input=  7.0,   q_input= 3.0)
+        Load(id= 20,   bus=self.buses[ 26],   pb=self.sb,   p_input= 62.0,   q_input=13.0)
+        Load(id= 21,   bus=self.buses[ 27],   pb=self.sb,   p_input= 17.0,   q_input= 7.0)
+        Load(id= 22,   bus=self.buses[ 28],   pb=self.sb,   p_input= 24.0,   q_input= 4.0)
+        Load(id= 23,   bus=self.buses[ 30],   pb=self.sb,   p_input= 43.0,   q_input=27.0)
+        Load(id= 24,   bus=self.buses[ 31],   pb=self.sb,   p_input= 59.0,   q_input=23.0)
+        Load(id= 25,   bus=self.buses[ 32],   pb=self.sb,   p_input= 23.0,   q_input= 9.0)
+        Load(id= 26,   bus=self.buses[ 33],   pb=self.sb,   p_input= 59.0,   q_input=26.0)
+        Load(id= 27,   bus=self.buses[ 34],   pb=self.sb,   p_input= 33.0,   q_input= 9.0)
+        Load(id= 28,   bus=self.buses[ 35],   pb=self.sb,   p_input= 31.0,   q_input=17.0)
+        Load(id= 29,   bus=self.buses[ 38],   pb=self.sb,   p_input= 27.0,   q_input=11.0)
+        Load(id= 30,   bus=self.buses[ 39],   pb=self.sb,   p_input= 20.0,   q_input=23.0)
+        Load(id= 31,   bus=self.buses[ 40],   pb=self.sb,   p_input= 37.0,   q_input=10.0)
+        Load(id= 32,   bus=self.buses[ 41],   pb=self.sb,   p_input= 37.0,   q_input=23.0)
+        Load(id= 33,   bus=self.buses[ 42],   pb=self.sb,   p_input= 18.0,   q_input= 7.0)
+        Load(id= 34,   bus=self.buses[ 43],   pb=self.sb,   p_input= 16.0,   q_input= 8.0)
+        Load(id= 35,   bus=self.buses[ 44],   pb=self.sb,   p_input= 53.0,   q_input=22.0)
+        Load(id= 36,   bus=self.buses[ 45],   pb=self.sb,   p_input= 28.0,   q_input=10.0)
+        Load(id= 37,   bus=self.buses[ 46],   pb=self.sb,   p_input= 34.0,   q_input= 0.0)
+        Load(id= 38,   bus=self.buses[ 47],   pb=self.sb,   p_input= 20.0,   q_input=11.0)
+        Load(id= 39,   bus=self.buses[ 48],   pb=self.sb,   p_input= 87.0,   q_input=30.0)
+        Load(id= 40,   bus=self.buses[ 49],   pb=self.sb,   p_input= 17.0,   q_input= 4.0)
+        Load(id= 41,   bus=self.buses[ 50],   pb=self.sb,   p_input= 17.0,   q_input= 8.0)
+        Load(id= 42,   bus=self.buses[ 51],   pb=self.sb,   p_input= 18.0,   q_input= 5.0)
+        Load(id= 43,   bus=self.buses[ 52],   pb=self.sb,   p_input= 23.0,   q_input=11.0)
+        Load(id= 44,   bus=self.buses[ 53],   pb=self.sb,   p_input=113.0,   q_input=32.0)
+        Load(id= 45,   bus=self.buses[ 54],   pb=self.sb,   p_input= 63.0,   q_input=22.0)
+        Load(id= 46,   bus=self.buses[ 55],   pb=self.sb,   p_input= 84.0,   q_input=18.0)
+        Load(id= 47,   bus=self.buses[ 56],   pb=self.sb,   p_input= 12.0,   q_input= 3.0)
+        Load(id= 48,   bus=self.buses[ 57],   pb=self.sb,   p_input= 12.0,   q_input= 3.0)
+        Load(id= 49,   bus=self.buses[ 58],   pb=self.sb,   p_input=277.0,   q_input=113.0)
+        Load(id= 50,   bus=self.buses[ 59],   pb=self.sb,   p_input= 78.0,   q_input= 3.0)
+        Load(id= 51,   bus=self.buses[ 61],   pb=self.sb,   p_input= 77.0,   q_input=14.0)
+        Load(id= 52,   bus=self.buses[ 65],   pb=self.sb,   p_input= 39.0,   q_input=18.0)
+        Load(id= 53,   bus=self.buses[ 66],   pb=self.sb,   p_input= 28.0,   q_input= 7.0)
+        Load(id= 54,   bus=self.buses[ 69],   pb=self.sb,   p_input= 66.0,   q_input=20.0)
+        Load(id= 55,   bus=self.buses[ 73],   pb=self.sb,   p_input= 68.0,   q_input=27.0)
+        Load(id= 56,   bus=self.buses[ 74],   pb=self.sb,   p_input= 47.0,   q_input=11.0)
+        Load(id= 57,   bus=self.buses[ 75],   pb=self.sb,   p_input= 68.0,   q_input=36.0)
+        Load(id= 58,   bus=self.buses[ 76],   pb=self.sb,   p_input= 61.0,   q_input=28.0)
+        Load(id= 59,   bus=self.buses[ 77],   pb=self.sb,   p_input= 71.0,   q_input=26.0)
+        Load(id= 60,   bus=self.buses[ 78],   pb=self.sb,   p_input= 39.0,   q_input=32.0)
+        Load(id= 61,   bus=self.buses[ 79],   pb=self.sb,   p_input=130.0,   q_input=26.0)
+        Load(id= 62,   bus=self.buses[ 81],   pb=self.sb,   p_input= 54.0,   q_input=27.0)
+        Load(id= 63,   bus=self.buses[ 82],   pb=self.sb,   p_input= 20.0,   q_input=10.0)
+        Load(id= 64,   bus=self.buses[ 83],   pb=self.sb,   p_input= 11.0,   q_input= 7.0)
+        Load(id= 65,   bus=self.buses[ 84],   pb=self.sb,   p_input= 24.0,   q_input=15.0)
+        Load(id= 66,   bus=self.buses[ 85],   pb=self.sb,   p_input= 21.0,   q_input=10.0)
+        Load(id= 67,   bus=self.buses[ 87],   pb=self.sb,   p_input= 48.0,   q_input=10.0)
+        Load(id= 68,   bus=self.buses[ 89],   pb=self.sb,   p_input= 78.0,   q_input=42.0)
+        Load(id= 69,   bus=self.buses[ 91],   pb=self.sb,   p_input= 65.0,   q_input=10.0)
+        Load(id= 70,   bus=self.buses[ 92],   pb=self.sb,   p_input= 12.0,   q_input= 7.0)
+        Load(id= 71,   bus=self.buses[ 93],   pb=self.sb,   p_input= 30.0,   q_input=16.0)
+        Load(id= 72,   bus=self.buses[ 94],   pb=self.sb,   p_input= 42.0,   q_input=31.0)
+        Load(id= 73,   bus=self.buses[ 95],   pb=self.sb,   p_input= 38.0,   q_input=15.0)
+        Load(id= 74,   bus=self.buses[ 96],   pb=self.sb,   p_input= 15.0,   q_input= 9.0)
+        Load(id= 75,   bus=self.buses[ 97],   pb=self.sb,   p_input= 34.0,   q_input= 8.0)
+        Load(id= 76,   bus=self.buses[ 99],   pb=self.sb,   p_input= 37.0,   q_input=18.0)
+        Load(id= 77,   bus=self.buses[100],   pb=self.sb,   p_input= 22.0,   q_input=15.0)
+        Load(id= 78,   bus=self.buses[101],   pb=self.sb,   p_input=  5.0,   q_input= 3.0)
+        Load(id= 79,   bus=self.buses[102],   pb=self.sb,   p_input= 23.0,   q_input=16.0)
+        Load(id= 80,   bus=self.buses[103],   pb=self.sb,   p_input= 38.0,   q_input=25.0)
+        Load(id= 81,   bus=self.buses[104],   pb=self.sb,   p_input= 31.0,   q_input=26.0)
+        Load(id= 82,   bus=self.buses[105],   pb=self.sb,   p_input= 43.0,   q_input=16.0)
+        Load(id= 83,   bus=self.buses[106],   pb=self.sb,   p_input= 28.0,   q_input=12.0)
+        Load(id= 84,   bus=self.buses[107],   pb=self.sb,   p_input=  2.0,   q_input= 1.0)
+        Load(id= 85,   bus=self.buses[108],   pb=self.sb,   p_input=  8.0,   q_input= 3.0)
+        Load(id= 86,   bus=self.buses[109],   pb=self.sb,   p_input= 39.0,   q_input=30.0)
+        Load(id= 87,   bus=self.buses[111],   pb=self.sb,   p_input= 25.0,   q_input=13.0)
+        Load(id= 88,   bus=self.buses[113],   pb=self.sb,   p_input=  8.0,   q_input= 3.0)
+        Load(id= 89,   bus=self.buses[114],   pb=self.sb,   p_input= 22.0,   q_input= 7.0)
+        Load(id= 90,   bus=self.buses[116],   pb=self.sb,   p_input= 20.0,   q_input= 8.0)
+        Load(id= 91,   bus=self.buses[117],   pb=self.sb,   p_input= 33.0,   q_input=15.0)
+
+
+        # Deficit Generators:
+        for index, load_object in enumerate(self.loads):
+            Generator(
+                id=2001 + index,
+                bus=load_object.bus,
+                cost_b_input=400,
+                pb=self.sb,
+                p_max_input=99999,
+                p_min_input=0
+            )
 
 
 if __name__ == "__main__":

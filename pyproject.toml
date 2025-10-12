@@ -9,7 +9,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "numpy (>=2.3.3,<3.0.0)",
-    "pulp (>=3.3.0,<4.0.0)"
+    "pulp (>=3.3.0,<4.0.0)",
+    "matplotlib (>=3.10.7,<4.0.0)",
+    "pandas (>=2.3.3,<3.0.0)"
 ]
 
 [tool.poetry]
