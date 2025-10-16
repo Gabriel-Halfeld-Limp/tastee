@@ -48,22 +48,13 @@ class B3(Network):
         self.generators = [
             Generator(id=1, bus=self.buses[0], cost_b_input=10, pb=self.sb, p_max_input=15),
             Generator(id=2, bus=self.buses[1], cost_b_input=20, pb=self.sb, p_max_input=15),
-            Generator(id=3, bus=self.buses[2], cost_b_input=400, pb=self.sb, p_max_input=15),
         ]
 
         # Deficit Generators
         # Note: Generator.__post_init__ automatically registers the
         # generator with its bus and appends it to the network.generators
         # list. Do not append again here or you'll get duplicates.
-        for index, bus_object in enumerate(self.buses):
-            Generator(
-                id=1001 + index,
-                bus=bus_object,
-                cost_b_input=400,
-                pb=self.sb,
-                p_max_input=99999,
-                p_min_input=0
-            )
+
 
     def _create_loads(self):
         """
@@ -74,3 +65,13 @@ class B3(Network):
         self.loads = [
             Load(id=1, bus=self.buses[2], pb=self.sb, p_input=10.0),
         ]
+
+        for index, load_object in enumerate(self.loads):
+            Generator(
+                id=1001 + index,
+                bus=load_object.bus,
+                cost_b_input=400,
+                pb=self.sb,
+                p_max_input=99999,
+                p_min_input=0
+            )
