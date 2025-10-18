@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, WindGenerator, Load
+from .. import Network, Bus, Line, Generator, Load
 
 class IEEE118(Network):
     """Class to represent the IEEE 118 bus system.
@@ -9,7 +9,7 @@ class IEEE118(Network):
     """
 
     def __init__(self):
-        super().__init__(name="IEEE 118 Bus System")
+        super().__init__(name="IEEE_118")
         # System base power (MVA)
         self.sb = 100.0
 

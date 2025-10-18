@@ -19,6 +19,8 @@ class Generator:
     cost_b_input: float = 0.0
     cost_c_input: float = 0.0
     ramp_input: float = 0.0
+    mvu_input: Optional[float] = None
+    mvd_input: Optional[float] = None
 
     _id_counter: ClassVar[int] = 0
 
@@ -37,6 +39,13 @@ class Generator:
         self.bus.add_generator(self)
         self.network = self.bus.network
         self.network.generators.append(self)
+
+        if self.mvu_input is None:
+            self.mvu_input = self.p_max_input * 0.2
+
+        if self.mvd_input is None:
+            self.mvd_input = self.p_max_input * 0.2
+
 
     # --- Potência Ativa (p) ---
     @property
@@ -131,3 +140,13 @@ class Generator:
     def __repr__(self):
         return (f"Generator(id={self.id}, bus={self.bus.id}, p={self.p:.3f}, q={self.q:.3f}, "
                 f"p_range=[{self.p_min:.3f},{self.p_max:.3f}], q_range=[{self.q_min},{self.q_max}])")
+    
+
+    # --- MVU E MVD ---
+    @property
+    def mvu(self) -> float:
+        return self.mvu_input / self.pb
+
+    @property
+    def mvd(self) -> float:
+        return self.mvd_input / self.pb

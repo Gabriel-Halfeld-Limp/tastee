@@ -82,6 +82,11 @@ class Line:
     def flow_max_pu(self) -> float:
         """Fluxo máximo de potência ativa (pu)"""
         return self.flow_max / self.pb
+    
+    @flow_max_pu.setter
+    def flow_max_pu(self, new_flow_max_pu: float):
+        """Define o fluxo máximo a partir de um valor em pu."""
+        self.flow_max = new_flow_max_pu * self.pb
 
     def get_admittance_elements(self, bus_index: Dict[str, int]):
         """Gera os elementos de admitância baseados nos parâmetros da linha"""

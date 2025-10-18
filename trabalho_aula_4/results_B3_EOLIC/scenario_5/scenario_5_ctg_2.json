@@ -1,0 +1,73 @@
+{
+    "solver_status": "Optimal",
+    "custo_total": "$1957.53",
+    "sumario_perdas": {
+        "carga_total_pu": "0.1016",
+        "perdas_totais_pu": "0.0005",
+        "cargas_individuais_pu": {
+            "1": "0.1016"
+        },
+        "perdas_por_barra_pu": {
+            "1": "0.000233",
+            "2": "0.000020",
+            "3": "0.000213"
+        }
+    },
+    "sumario_curtailment": {
+        "curtailment_total_pu": "0.0000",
+        "curtailment_por_gerador": {
+            "1": {
+                "disponivel_pu": "0.0341",
+                "despachado_pu": "0.0341",
+                "curtailment_pu": "0.0000"
+            }
+        }
+    },
+    "primal_results": {
+        "geracao_pu": {
+            "1": "0.0341",
+            "2": "0.0200",
+            "1001": "0.0479"
+        },
+        "thetas_deg": {
+            "1": "0.0000",
+            "2": "1.1459",
+            "3": "-3.0855"
+        },
+        "fluxo_pu": {
+            "1": "-0.0200",
+            "2": "0.0539"
+        }
+    },
+    "dual_results": {
+        "custo_marginal_de_energia_LMP": {
+            "1": "$40000.00/pu",
+            "2": "$2000.00/pu",
+            "3": "$40000.00/pu"
+        },
+        "congestionamento_de_fluxo": {
+            "1": {
+                "limite_superior": -0.0,
+                "limite_inferior": 38000.0
+            },
+            "2": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            }
+        },
+        "limites_de_geracao": {
+            "1": {
+                "limite_superior": 40000.0,
+                "limite_inferior": 0.0
+            },
+            "2": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "1001": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            }
+        }
+    }
+}

@@ -9,7 +9,7 @@ class IEEE118EOL(Network):
     """
 
     def __init__(self):
-        super().__init__(name="IEEE 118 Bus System")
+        super().__init__(name="IEEE_118_Eolic")
         # System base power (MVA)
         self.sb = 100.0
 
@@ -18,6 +18,9 @@ class IEEE118EOL(Network):
         self._create_lines()
         self._create_generators()
         self._create_loads()
+
+        self.mvu = 0.2
+        self.mvd = 0.2
 
     def _create_buses(self):
         """Create Bus objects for the 118 buses.

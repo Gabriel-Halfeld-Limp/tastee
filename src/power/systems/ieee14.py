@@ -5,7 +5,7 @@ class IEEE14(Network):
     Class to represent the IEEE 14 bus system.
     """
     def __init__(self):
-        super().__init__(name="IEEE 14 Bus System")
+        super().__init__(name="IEEE_14")
         self.sb = 100
         self._create_buses()
         self._create_lines()

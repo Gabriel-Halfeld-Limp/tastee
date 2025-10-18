@@ -4,7 +4,7 @@ class B6L8EOL(Network):
     Classe para representar o sistema de 3 barras fornecido.
     """
     def __init__(self):
-        super().__init__(name="Sistema de 3 Barras")
+        super().__init__(name="B6L8_EOLIC")
         self.sb = 100
         self._create_buses()
         self._create_lines()
@@ -49,10 +49,13 @@ class B6L8EOL(Network):
         Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_input).
         Os geradores são apenas alocados às barras.
         """
+        Generator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50)
+        Generator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70)
+        Generator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60)
 
-        WindGenerator(id=1, pb=self.sb, bus=self.buses[0], p_max_input=50)
-        WindGenerator(id=2, pb=self.sb, bus=self.buses[2], p_max_input=70)
-        WindGenerator(id=3, pb=self.sb, bus=self.buses[3], p_max_input=60)
+        WindGenerator(id=4, pb=self.sb, bus=self.buses[0], p_max_input=50)
+        WindGenerator(id=5, pb=self.sb, bus=self.buses[2], p_max_input=70)
+        WindGenerator(id=6, pb=self.sb, bus=self.buses[3], p_max_input=60)
     
     def _create_loads(self):
         Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5)

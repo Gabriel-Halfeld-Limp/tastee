@@ -1,0 +1,161 @@
+{
+    "solver_status": "Optimal",
+    "custo_total": "$930.09",
+    "sumario_perdas": {
+        "carga_total_pu": "1.6167",
+        "perdas_totais_pu": "0.0039",
+        "cargas_individuais_pu": {
+            "1": "0.2148",
+            "2": "0.4071",
+            "3": "0.3114",
+            "4": "0.2945",
+            "5": "0.3890"
+        },
+        "perdas_por_barra_pu": {
+            "1": "0.000292",
+            "2": "0.000153",
+            "3": "0.001407",
+            "4": "0.000272",
+            "5": "0.000450",
+            "6": "0.001362"
+        }
+    },
+    "sumario_curtailment": {
+        "curtailment_total_pu": "0.0525",
+        "curtailment_por_gerador": {
+            "4": {
+                "disponivel_pu": "0.3935",
+                "despachado_pu": "0.3410",
+                "curtailment_pu": "0.0525"
+            },
+            "5": {
+                "disponivel_pu": "0.4654",
+                "despachado_pu": "0.4654",
+                "curtailment_pu": "-0.0000"
+            },
+            "6": {
+                "disponivel_pu": "0.4231",
+                "despachado_pu": "0.4231",
+                "curtailment_pu": "-0.0000"
+            }
+        }
+    },
+    "primal_results": {
+        "geracao_pu": {
+            "1": "0.0000",
+            "2": "0.2433",
+            "3": "0.1478",
+            "4": "0.3410",
+            "5": "0.4654",
+            "6": "0.4231",
+            "1001": "0.0000",
+            "1002": "0.0000",
+            "1003": "0.0000",
+            "1004": "0.0000",
+            "1005": "0.0000"
+        },
+        "thetas_deg": {
+            "1": "0.0000",
+            "2": "-0.8594",
+            "3": "-0.2271",
+            "4": "0.1433",
+            "5": "-1.5294",
+            "6": "-2.4616"
+        },
+        "fluxo_pu": {
+            "1": "0.1500",
+            "2": "-0.0649",
+            "3": "-0.0646",
+            "4": "0.1946",
+            "5": "0.0904",
+            "6": "0.3000",
+            "7": "0.1907"
+        }
+    },
+    "dual_results": {
+        "custo_marginal_de_energia_LMP": {
+            "1": "$0.00/pu",
+            "2": "$7464.29/pu",
+            "3": "$2000.00/pu",
+            "4": "$3000.00/pu",
+            "5": "$4500.00/pu",
+            "6": "$12085.71/pu"
+        },
+        "congestionamento_de_fluxo": {
+            "1": {
+                "limite_superior": 10678.571,
+                "limite_inferior": 0.0
+            },
+            "2": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "3": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "4": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "5": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "6": {
+                "limite_superior": 15564.286,
+                "limite_inferior": 0.0
+            },
+            "7": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            }
+        },
+        "limites_de_geracao": {
+            "1": {
+                "limite_superior": -0.0,
+                "limite_inferior": 1000.0
+            },
+            "2": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "3": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "4": {
+                "limite_superior": -0.0,
+                "limite_inferior": 0.0
+            },
+            "5": {
+                "limite_superior": 2000.0,
+                "limite_inferior": 0.0
+            },
+            "6": {
+                "limite_superior": 3000.0,
+                "limite_inferior": 0.0
+            },
+            "1001": {
+                "limite_superior": -0.0,
+                "limite_inferior": 32535.714
+            },
+            "1002": {
+                "limite_superior": -0.0,
+                "limite_inferior": 38000.0
+            },
+            "1003": {
+                "limite_superior": -0.0,
+                "limite_inferior": 37000.0
+            },
+            "1004": {
+                "limite_superior": -0.0,
+                "limite_inferior": 35500.0
+            },
+            "1005": {
+                "limite_superior": -0.0,
+                "limite_inferior": 27914.286
+            }
+        }
+    }
+}

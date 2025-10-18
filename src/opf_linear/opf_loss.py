@@ -122,7 +122,7 @@ class LinearDispatch:
         """
         Resolve o despacho econômico de forma iterativa para incluir as perdas da rede.
         """
-        print("Iniciando Despacho Econômico Linear com Perdas...")
+        # print("Iniciando Despacho Econômico Linear com Perdas...")
 
         # 1. Construir o modelo base FORA do loop
         self.problem = pl.LpProblem("Linear_Economic_Dispatch", pl.LpMinimize)
@@ -147,9 +147,9 @@ class LinearDispatch:
             # 3. Calcular novas perdas e verificar convergência
             current_total_loss = self._update_losses()
             loss_diff = abs(current_total_loss - prev_total_loss)
-            print(f"Iteração {i}: Perdas Totais = {current_total_loss:.6f} pu | Diferença = {loss_diff:.6f}")
+            # print(f"Iteração {i}: Perdas Totais = {current_total_loss:.6f} pu | Diferença = {loss_diff:.6f}")
             if loss_diff <= max_tol:
-                print(f"\nConvergência atingida na iteração {i}!")
+                # print(f"\nConvergência atingida na iteração {i}!")
                 break    
             # 4. Preparar para a próxima iteração
             prev_total_loss = current_total_loss

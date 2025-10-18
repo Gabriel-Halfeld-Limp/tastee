@@ -4,7 +4,7 @@ class B3(Network):
     Classe para representar o sistema de 3 barras fornecido.
     """
     def __init__(self):
-        super().__init__(name="Sistema de 3 Barras")
+        super().__init__(name="B3")
         self.sb = 100
         self._create_buses()
         self._create_lines()
