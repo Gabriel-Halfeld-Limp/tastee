@@ -1,7 +1,7 @@
-from power import Network
+from power import Network, ThermalGenerator
 import numpy as np
 import pulp as pl
-from opf_linear.utils.extr_and_save import extract_and_save_results
+# from opf_linear.utils.extr_and_save import extract_and_save_results
 
 class LinearDispatch:
     def __init__(self, net: Network):
@@ -20,7 +20,12 @@ class LinearDispatch:
     # ----------------------------------------------------------------OBJECTIVE FUNCTIONS------------------------------------------------------------------------------------#
     def _fob_linear_econ_dispatch(self):
         """Define a função objetivo do problema (minimizar custo total)."""
-        self.problem += pl.lpSum([g.cost_b * g.p_var for g in self.net.generators]), "Min_Generation_Cost"
+
+        thermal_generators = [g for g in self.net.generators if isinstance(g, ThermalGenerator)]
+        thermal_cost = pl.lpSum([g.cost_b * g.p_var for g in thermal_generators])
+        generation_cost = thermal_cost
+        shedding_cost = pl.lpSum([l.cost_shed * l.p_shed_var for l in self.net.loads if hasattr(l, 'p_shed_var')])
+        self.problem += generation_cost + shedding_cost, "Min_Total_System_Cost"
     
     def _fob_min_loss(self):
         self.problem += pl.lpSum([g.p_var for g in self.net.generators]), "Min_Loss"
@@ -57,20 +62,21 @@ class LinearDispatch:
             self.problem += g.p_var <= g.p_max, f"Constraint_P{g.id}_Upper"
             self.problem += g.p_var >= g.p_min, f"Constraint_P{g.id}_Lower"
 
+    def _create_load_shed_variable(self):
+        for l in self.net.loads:
+            l.p_shed_var = pl.LpVariable(f"L_shed{l.id}")
+            self.problem += l.p_shed_var <= l.p,       f"Constraint_P_Shed{l.id}_Upper"
+            self.problem += l.p_shed_var >= 0,         f"Constraint_P_Shed{l.id}_Lower"
+
     # ----------------------------------------------------------------CREATE CONSTRAINTS------------------------------------------------------------------------------------#
     def _nodal_power_balance(self):
         for b in self.net.buses:
             generation = pl.lpSum([g.p_var for g in b.generators])
             load = sum([l.p for l in b.loads]) + b.loss
-            flow_in = 0
-            flow_out = 0
-            for l in self.net.lines:
-                if l.from_bus == b: #The line starts at bus 'b', so it's an outgoing flow
-                    flow_out += (b.theta_var - l.to_bus.theta_var) / l.reactance
-            
-                elif l.to_bus == b: #The line ends at bus 'b', so it's an incoming flow
-                    flow_in += (l.from_bus.theta_var - b.theta_var) / l.reactance
-            self.problem += generation + flow_in - flow_out == load, f"B{b.id}_Power_Balance"
+            load_shed = pl.lpSum([l.p_shed_var for l in b.loads])
+            flow_in = pl.lpSum([(l.from_bus.theta_var - b.theta_var) / l.reactance for l in self.net.lines if l.to_bus == b])
+            flow_out = pl.lpSum([(b.theta_var - l.to_bus.theta_var) / l.reactance for l in self.net.lines if l.from_bus == b])
+            self.problem += generation + load_shed + flow_in - flow_out == load, f"B{b.id}_Power_Balance"
 
     # ----------------------------------------------------------------UTILS------------------------------------------------------------------------------------------------#
 
@@ -95,6 +101,7 @@ class LinearDispatch:
             dtheta = l.from_bus.theta_var.value() - l.to_bus.theta_var.value()
             
             line_loss = g_series * (dtheta ** 2)
+            l.loss = line_loss
             current_total_loss += line_loss
             
             # Atribui metade da perda para cada barra da linha
@@ -118,7 +125,7 @@ class LinearDispatch:
     
     # ----------------------------------------------------------------SOLVING----------------------------------------------------------------------------------------------#
     
-    def solve_loss(self, iter_max=100, max_tol=1e-4, min_losses=False):
+    def solve_loss(self, iter_max=100, max_tol=1e-6, min_losses=False):
         """
         Resolve o despacho econômico de forma iterativa para incluir as perdas da rede.
         """
@@ -129,6 +136,7 @@ class LinearDispatch:
         self._create_theta_variable()
         self._create_flow_variable()
         self._create_generation_variable()
+        self._create_load_shed_variable()
         if not min_losses:
             self._fob_linear_econ_dispatch()
         else:
@@ -139,7 +147,8 @@ class LinearDispatch:
 
         for i in range(1, iter_max + 1):
             # 2. Resolver o problema atual
-            self.problem.solve()
+            # self.problem.solve()
+            self.problem.solve(pl.PULP_CBC_CMD(msg=False))
             if self.problem.status != pl.LpStatusOptimal:
                 print(f"ERRO: Solução ótima não encontrada na iteração {i}.")
                 return (pl.LpStatus[self.problem.status], None, None)

@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, WindGenerator, Load
+from .. import Network, Bus, Line, Generator, Load, WindGenerator, ThermalGenerator
 class B6L8(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
@@ -20,12 +20,13 @@ class B6L8(Network):
         - Barras 2 e 3 são do tipo PV
         - Tensão inicial de 1.0 p.u. e ângulo 0.0 para todas as barras (exceto Slack que já tem ângulo 0).
         """
-        Bus(self, id=1, theta=   0.00, bus_type='Slack')
-        Bus(self, id=2, theta=  -4.98)
-        Bus(self, id=3, theta= -12.72, v=1.05)
-        Bus(self, id=4, theta=   0.00)
-        Bus(self, id=5, theta=  -4.98)
-        Bus(self, id=6, theta= -12.72)
+        Bus(self, id=1, theta=   0.00, Sb=self.sb, bus_type='Slack')
+        Bus(self, id=2, theta=  -4.98, Sb=self.sb)
+        Bus(self, id=3, theta= -12.72, Sb=self.sb, v=1.05)
+        Bus(self, id=4, theta=   0.00, Sb=self.sb)
+        Bus(self, id=5, theta=  -4.98, Sb=self.sb)
+        Bus(self, id=6, theta= -12.72, Sb=self.sb)
+
 
     def _create_lines(self):
         """
@@ -49,24 +50,13 @@ class B6L8(Network):
         Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_input).
         Os geradores são apenas alocados às barras.
         """
-
-        Generator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50)
-        Generator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70)
-        Generator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60)
+        ThermalGenerator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50)
+        ThermalGenerator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70)
+        ThermalGenerator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60)
     
     def _create_loads(self):
-        Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5)
-        Load(id=2, bus=self.buses[2], pb=self.sb, p_input=40.0, q_input=17.0)
-        Load(id=3, bus=self.buses[3], pb=self.sb, p_input=30.0, q_input= 4.0)
-        Load(id=4, bus=self.buses[4], pb=self.sb, p_input=30.0, q_input=12.7)
-        Load(id=5, bus=self.buses[5], pb=self.sb, p_input=40.0, q_input=17.3)
-
-        for index, load_object in enumerate(self.loads):
-            Generator(
-                id=1001 + index,
-                bus=load_object.bus,
-                cost_b_input=400,
-                pb=self.sb,
-                p_max_input=99999,
-                p_min_input=0
-            )
+        Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5, cost_shed_input=400)
+        Load(id=2, bus=self.buses[2], pb=self.sb, p_input=40.0, q_input=17.0, cost_shed_input=400)
+        Load(id=3, bus=self.buses[3], pb=self.sb, p_input=30.0, q_input= 4.0, cost_shed_input=400)
+        Load(id=4, bus=self.buses[4], pb=self.sb, p_input=30.0, q_input=12.7, cost_shed_input=400)
+        Load(id=5, bus=self.buses[5], pb=self.sb, p_input=40.0, q_input=17.3, cost_shed_input=400)

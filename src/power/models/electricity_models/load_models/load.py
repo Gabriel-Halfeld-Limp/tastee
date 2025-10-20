@@ -7,12 +7,11 @@ from ..bus_models import Bus
 @dataclass
 class Load:
     bus: 'Bus'
+    id: int
     name: Optional[str] = None
-    id: Optional[int] = None
 
     pb: float = 1.0
     p_input: float = 0.0
-    #Inserção de curva de carga
     p_input_series: np.ndarray = field(default_factory=lambda: np.array([]))
     q_input: float = 0.0
     power_factor: float = 1.0
@@ -20,21 +19,14 @@ class Load:
     p_min_input: float = 0.0
     q_max_input: Optional[float] = None
     q_min_input: Optional[float] = None
+    cost_shed_input: Optional[float] = 10000.0
+    
+    #Attributes for loads that make bids on a market
     cost_a_input: float = 0.0
     cost_b_input: float = 0.0
     cost_c_input: float = 0.0
 
-    _id_counter: ClassVar[int] = 0
-
     def __post_init__(self):
-        if self.id is None:
-            self.id = Load._id_counter
-            Load._id_counter += 1
-        else:
-            self.id = int(self.id)
-            if self.id >= Load._id_counter:
-                Load._id_counter = self.id + 1
-
         if self.name is None:
             self.name = f"Load {self.id}"
 
@@ -130,6 +122,14 @@ class Load:
     @cost_c.setter
     def cost_c(self, new_cost_c_pu: float):
         self.cost_c_input = new_cost_c_pu / (self.pb**2)
+
+    @property
+    def cost_shed(self) -> float:
+        return self.cost_shed_input * self.pb
+    
+    @cost_shed.setter
+    def cost_shed(self, new_cost_shed_pu: float):
+        self.cost_shed_input = new_cost_shed_pu / self.pb
 
     def __repr__(self):
         return (f"Load(id={self.id}, bus={self.bus.id}, p={self.p:.3f}, q={self.q:.3f}, "

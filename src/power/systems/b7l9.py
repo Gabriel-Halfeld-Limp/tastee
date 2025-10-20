@@ -1,5 +1,5 @@
 import math
-from .. import Network, Bus, Line, Generator, Load
+from .. import Network, Bus, Line, Generator, Load, WindGenerator, ThermalGenerator
 
 class SystemB7L8(Network):
     """

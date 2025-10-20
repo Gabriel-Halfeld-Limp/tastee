@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, Load
+from .. import Network, Bus, Line, Generator, Load, WindGenerator, ThermalGenerator
 class IEEE119(Network):
     """
     Classe para representar o sistema de teste de 119 barras fornecido.

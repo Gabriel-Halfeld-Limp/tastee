@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, Load, WindGenerator
+from .. import Network, Bus, Line, Generator, Load, WindGenerator, ThermalGenerator
 class B3EOL(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
@@ -39,32 +39,12 @@ class B3EOL(Network):
     def _create_generators(self):
         """
         Cria os geradores do sistema.
-        Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_input).
-        Os geradores são apenas alocados às barras.
         """
         WindGenerator(id=1, bus=self.buses[0], pb=self.sb, p_max_input=15)
-        Generator(id=2, bus=self.buses[1], cost_b_input=20, pb=self.sb, p_max_input=15)
-
-        # Deficit Generators
-        # Note: Generator.__post_init__ automatically registers the
-        # generator with its bus and appends it to the network.generators
-        # list. Do not append again here or you'll get duplicates.
-
+        ThermalGenerator(id=2, bus=self.buses[1], cost_b_input=20, pb=self.sb, p_max_input=15)
 
     def _create_loads(self):
         """
         Cria as cargas do sistema.
-        Suposição: A coluna 'carga' (valor 10.0) na matriz DBAR para a barra 3
-        representa a carga reativa (q_input). A carga ativa (p_input) é considerada 0.
         """
-        Load(id=1, bus=self.buses[2], pb=self.sb, p_input=10.0)
-
-        for index, load_object in enumerate(self.loads):
-            Generator(
-                id=1001 + index,
-                bus=load_object.bus,
-                cost_b_input=400,
-                pb=self.sb,
-                p_max_input=99999,
-                p_min_input=0
-            )
+        Load(id=1, bus=self.buses[2], pb=self.sb, p_input=10.0, cost_shed_input=400)
