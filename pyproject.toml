@@ -17,7 +17,10 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{include = "opf_linear", from = "src"}, {include = "power", from = "src"}, {include = "trabalhos_transmissao", from = "src"}]
+packages = [{include = "optimal_power_flow", from = "src"}, 
+            {include = "power", from = "src"}, 
+            {include = "metaheuristic", from = "src"},
+            {include = "power_flow", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.30.1"

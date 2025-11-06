@@ -1,5 +1,5 @@
 from power.electricity_models import Network, Bus, BusType, Line, Load, ThermalGenerator
-class B6L8(Network):
+class B6L8Charged(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
     """
@@ -50,13 +50,13 @@ class B6L8(Network):
         Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_mw).
         Os geradores são apenas alocados às barras.
         """
-        ThermalGenerator(id=1, bus=self.buses[0], p_mw=1, q_mvar=6.9, cost_b_mw=10, p_max_mw=50)
-        ThermalGenerator(id=2, bus=self.buses[2], p_mw=0, q_mvar=0  , cost_b_mw=20, p_max_mw=70)
-        ThermalGenerator(id=3, bus=self.buses[3], p_mw=0, q_mvar=0  , cost_b_mw=30, p_max_mw=60)
+        ThermalGenerator(id=1, bus=self.buses[0], p_mw=1, q_mvar=6.9, cost_b_mw=10, p_max_mw=2*50)
+        ThermalGenerator(id=2, bus=self.buses[2], p_mw=0, q_mvar=0  , cost_b_mw=20, p_max_mw=2*70)
+        ThermalGenerator(id=3, bus=self.buses[3], p_mw=0, q_mvar=0  , cost_b_mw=30, p_max_mw=2*60)
     
     def _create_loads(self):
-        Load(id=1, bus=self.buses[1], p_mw=20.0, q_mvar= 8.5, cost_shed_mw=400)
-        Load(id=2, bus=self.buses[2], p_mw=40.0, q_mvar=17.0, cost_shed_mw=400)
-        Load(id=3, bus=self.buses[3], p_mw=30.0, q_mvar= 4.0, cost_shed_mw=400)
-        Load(id=4, bus=self.buses[4], p_mw=30.0, q_mvar=12.7, cost_shed_mw=400)
-        Load(id=5, bus=self.buses[5], p_mw=40.0, q_mvar=17.3, cost_shed_mw=400)
+        Load(id=1, bus=self.buses[1], p_mw=2*20.0, q_mvar= 8.5, cost_shed_mw=400)
+        Load(id=2, bus=self.buses[2], p_mw=2*40.0, q_mvar=17.0, cost_shed_mw=400)
+        Load(id=3, bus=self.buses[3], p_mw=2*30.0, q_mvar= 4.0, cost_shed_mw=400)
+        Load(id=4, bus=self.buses[4], p_mw=2*30.0, q_mvar=12.7, cost_shed_mw=400)
+        Load(id=5, bus=self.buses[5], p_mw=2*40.0, q_mvar=17.3, cost_shed_mw=400)
