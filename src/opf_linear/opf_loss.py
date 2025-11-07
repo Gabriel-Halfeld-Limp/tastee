@@ -1,4 +1,4 @@
-from power import Network, ThermalGenerator
+from power import Network, ThermalGenerator, BusType
 import numpy as np
 import pulp as pl
 # from opf_linear.utils.extr_and_save import extract_and_save_results
@@ -22,9 +22,9 @@ class LinearDispatch:
         """Define a função objetivo do problema (minimizar custo total)."""
 
         thermal_generators = [g for g in self.net.generators if isinstance(g, ThermalGenerator)]
-        thermal_cost = pl.lpSum([g.cost_b * g.p_var for g in thermal_generators])
+        thermal_cost = pl.lpSum([g.cost_b_pu * g.p_var for g in thermal_generators])
         generation_cost = thermal_cost
-        shedding_cost = pl.lpSum([l.cost_shed * l.p_shed_var for l in self.net.loads if hasattr(l, 'p_shed_var')])
+        shedding_cost = pl.lpSum([l.cost_shed_pu * l.p_shed_var for l in self.net.loads if hasattr(l, 'p_shed_var')])
         self.problem += generation_cost + shedding_cost, "Min_Total_System_Cost"
     
     def _fob_min_loss(self):
@@ -38,7 +38,7 @@ class LinearDispatch:
     def _create_theta_variable(self):
         # Ângulo das Barras
         for b in self.net.buses:
-                if b.bus_type == 'Slack':
+                if b.btype == BusType.SLACK:
                     b.theta_var = pl.LpVariable(f"Theta{b.id}")
                     self.problem += b.theta_var <=  0, f"Constraint_Theta_{b.id}_Upper"
                     self.problem += b.theta_var >= 0, f"Constraint_Theta_{b.id}_Lower"
@@ -54,28 +54,28 @@ class LinearDispatch:
             line.flow_var = pl.LpVariable(f"Flow_{line.id}")
             self.problem += line.flow_var <=  line.flow_max_pu, f"Constraint_Flow_{line.id}_Upper"
             self.problem += line.flow_var >= -line.flow_max_pu, f"Constraint_Flow_{line.id}_Lower"
-            self.problem += line.flow_var == ((line.from_bus.theta_var - line.to_bus.theta_var) / line.reactance), f"Constraint_Flow_{line.id}"
+            self.problem += line.flow_var == ((line.from_bus.theta_var - line.to_bus.theta_var) / line.x_pu), f"Constraint_Flow_{line.id}"
     
     def _create_generation_variable(self):
         for g in self.net.generators:
             g.p_var = pl.LpVariable(f"P{g.id}")
-            self.problem += g.p_var <= g.p_max, f"Constraint_P{g.id}_Upper"
-            self.problem += g.p_var >= g.p_min, f"Constraint_P{g.id}_Lower"
+            self.problem += g.p_var <= g.p_max_pu, f"Constraint_P{g.id}_Upper"
+            self.problem += g.p_var >= g.p_min_pu, f"Constraint_P{g.id}_Lower"
 
     def _create_load_shed_variable(self):
         for l in self.net.loads:
             l.p_shed_var = pl.LpVariable(f"L_shed{l.id}")
-            self.problem += l.p_shed_var <= l.p,       f"Constraint_P_Shed{l.id}_Upper"
+            self.problem += l.p_shed_var <= l.p_pu,       f"Constraint_P_Shed{l.id}_Upper"
             self.problem += l.p_shed_var >= 0,         f"Constraint_P_Shed{l.id}_Lower"
 
     # ----------------------------------------------------------------CREATE CONSTRAINTS------------------------------------------------------------------------------------#
     def _nodal_power_balance(self):
         for b in self.net.buses:
             generation = pl.lpSum([g.p_var for g in b.generators])
-            load = sum([l.p for l in b.loads]) + b.loss
+            load = sum([l.p_pu for l in b.loads]) + b.loss
             load_shed = pl.lpSum([l.p_shed_var for l in b.loads])
-            flow_in = pl.lpSum([(l.from_bus.theta_var - b.theta_var) / l.reactance for l in self.net.lines if l.to_bus == b])
-            flow_out = pl.lpSum([(b.theta_var - l.to_bus.theta_var) / l.reactance for l in self.net.lines if l.from_bus == b])
+            flow_in = pl.lpSum([(l.from_bus.theta_var - b.theta_var) / l.x_pu for l in self.net.lines if l.to_bus == b])
+            flow_out = pl.lpSum([(b.theta_var - l.to_bus.theta_var) / l.x_pu for l in self.net.lines if l.from_bus == b])
             self.problem += generation + load_shed + flow_in - flow_out == load, f"B{b.id}_Power_Balance"
 
     # ----------------------------------------------------------------UTILS------------------------------------------------------------------------------------------------#
@@ -92,8 +92,8 @@ class LinearDispatch:
 
         # 2. Calcula e distribui as novas perdas
         for l in self.net.lines:
-            r = l.resistance
-            x = l.reactance
+            r = l.r_pu
+            x = l.x_pu
             # Evita divisão por zero se a linha não tiver impedância
             g_series = r / (r**2 + x**2) if (r**2 + x**2) > 0 else 0
             
@@ -201,7 +201,7 @@ class LinearDispatch:
         # 3. Balanço nodal COM VALORES FIXOS
         for b in self.net.buses:
             generation = sum([g.p_var.value() for g in b.generators])
-            demand = sum([l.p for l in b.loads]) + b.loss
+            demand = sum([l.p_pu for l in b.loads]) + b.loss
             flow_out = pl.lpSum([l.flow_var for l in self.net.lines if l.from_bus == b])
             flow_in = pl.lpSum([l.flow_var for l in self.net.lines if l.to_bus == b])
             self.problem += flow_in - flow_out == demand - generation

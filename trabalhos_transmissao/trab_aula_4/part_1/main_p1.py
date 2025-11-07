@@ -12,7 +12,7 @@ import pulp as pl
 
 # Imports absolutos a partir da raiz 'src'
 from power import Network, Bus, Line, Load, ThermalGenerator, WindGenerator
-from power.systems import B3EOL, IEEE118EOL, B6L8EOL
+from power.systems import *
 from opf_linear.opf_loss import LinearDispatch
 from opf_linear.utils.extract_results.extract_all import extract_all
 from trabalhos_transmissao.utils.wnd_scen import apply_wnd_scen
@@ -20,10 +20,10 @@ from trabalhos_transmissao.utils.load_scen import apply_load_scen
 from trabalhos_transmissao.trab_aula_4.utils.collect_results import collect_ctg_results
 from trabalhos_transmissao.trab_aula_4.utils.save_results import save_ctg_results
 
-nets = [B6L8EOL(), IEEE118EOL(), B3EOL()]
+# nets = [B6L8EOL(), IEEE118EOL(), B3EOL()]
 # nets = [B6L8EOL()]
 # nets = [IEEE118EOL()]
-# nets = [B3()]
+nets = [B3()]
 # nets = [B3EOL()]
 seed = 42
 rng = np.random.default_rng(seed=seed)

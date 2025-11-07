@@ -20,7 +20,8 @@ dependencies = [
 packages = [{include = "optimal_power_flow", from = "src"}, 
             {include = "power", from = "src"}, 
             {include = "metaheuristic", from = "src"},
-            {include = "power_flow", from = "src"}]
+            {include = "power_flow", from = "src"},
+            {include = "trabalhos_transmissao"}]
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.30.1"

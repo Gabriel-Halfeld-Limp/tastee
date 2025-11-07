@@ -36,7 +36,7 @@ def extract_and_save_results(problem: pl.LpProblem, net: Network, output_filenam
     
     # ----- Sumário de Cargas e Perdas --------
     try:
-        total_load_pu = sum(load.p for load in net.loads)
+        total_load_pu = sum(load.p_pu for load in net.loads)
         total_loss_pu = sum(bus.loss for bus in net.buses if hasattr(bus, "loss"))
         total_shed_pu = sum(l.p_shed_var.value() for l in net.loads if hasattr(l, 'p_shed_var'))
         loss_summary = {
@@ -46,7 +46,7 @@ def extract_and_save_results(problem: pl.LpProblem, net: Network, output_filenam
             'corte_total_pu'  : total_shed_pu,
             # Valores individuais
             'cargas_individuais_pu': {
-                load.id: load.p for load in net.loads
+                load.id: load.p_pu for load in net.loads
             },
             'perdas_por_barra_pu': {
                 bus.id: bus.loss for bus in net.buses if hasattr(bus, 'loss')
@@ -57,7 +57,7 @@ def extract_and_save_results(problem: pl.LpProblem, net: Network, output_filenam
         total_curtailment = 0
         for g in net.generators:
             if isinstance(g, WindGenerator):
-                disponivel = g.p_max
+                disponivel = g.p_max_pu
                 despachado = g.p_var.value()
                 curtailment = disponivel - despachado
                 if curtailment > 1e-6:
@@ -79,9 +79,9 @@ def extract_and_save_results(problem: pl.LpProblem, net: Network, output_filenam
                 shed_amount = l.p_shed_var.value()
                 if shed_amount > 1e-6: # Apenas registra se for significativo
                     shedding_individual[l.id] = {
-                        "demanda_nominal_pu": l.p,
+                        "demanda_nominal_pu": l.p_pu,
                         "carga_cortada_pu": shed_amount,
-                        "carga_atendida_pu": l.p - shed_amount
+                        "carga_atendida_pu": l.p_pu - shed_amount
                     }
                     total_shedding += shed_amount
         shedding_summary = {
