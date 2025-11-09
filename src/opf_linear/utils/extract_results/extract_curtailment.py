@@ -21,11 +21,11 @@ def extract_curtailment(net: Network) -> dict:
         #    A lógica de comparação continua em p.u., pois é mais estável.
         curtailed_gens = [
             g for g in net.generators 
-            if isinstance(g, WindGenerator) and (g.p_max - g.p_var.value()) > 1e-6
+            if isinstance(g, WindGenerator) and (g.p_max_pu - g.p_var.value()) > 1e-6
         ]
 
         # 3. Calcula o total de curtailment em p.u. primeiro.
-        total_curtailment_pu = sum(g.p_max - g.p_var.value() for g in curtailed_gens)
+        total_curtailment_pu = sum(g.p_max_pu - g.p_var.value() for g in curtailed_gens)
         
         # 4. Monta o dicionário de retorno, convertendo todos os valores para MW.
         curtailment_summary = {
@@ -33,9 +33,9 @@ def extract_curtailment(net: Network) -> dict:
             "curtailment_por_gerador": {
                 g.id: {
                     # As chaves agora refletem a nova unidade (MW)
-                    "disponivel_mw": g.p_max * power_base,
+                    "disponivel_mw": g.p_max_pu * power_base,
                     "despachado_mw": g.p_var.value() * power_base,
-                    "curtailment_mw": (g.p_max - g.p_var.value()) * power_base
+                    "curtailment_mw": (g.p_max_pu - g.p_var.value()) * power_base
                 }
                 for g in curtailed_gens
             }

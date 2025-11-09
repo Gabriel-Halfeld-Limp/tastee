@@ -16,7 +16,7 @@ def extract_loads(net: Network) -> dict:
         # A chave principal 'cargas_individuais_mw' já descreve o conteúdo
         return {
             'cargas_individuais_mw': {
-                load.id: load.p * power_base
+                load.id: load.p_pu * power_base
                 for load in net.loads
             }
         }

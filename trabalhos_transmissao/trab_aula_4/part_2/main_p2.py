@@ -35,7 +35,7 @@ for net in nets:
     print(f"\n{'='*20} INICIANDO SIMULAÇÃO CRONOLÓGICA PARA: {net.name} {'='*20}")
     
     # CRITICAL: Armazenar os limites originais e o despacho anterior
-    limites_originais = {g.id: (g.p_min, g.p_max) for g in net.generators}
+    limites_originais = {g.id: (g.p_min_pu, g.p_max_pu) for g in net.generators}
     prev_dispatch = None # Memória da potência despachada no cenário anterior
 
     for scen in range(nscen):
@@ -63,8 +63,8 @@ for net in nets:
                     novo_p_max = min(p_max_fisico, p_anterior + g.mvu)
                     novo_p_min = max(p_min_fisico, p_anterior - g.mvd)
                     
-                    g.p_max = novo_p_max
-                    g.p_min = novo_p_min
+                    g.p_max_pu = novo_p_max
+                    g.p_min_pu = novo_p_min
 
         # 3. RESOLUÇÃO
         solver = LinearDispatch(net_scen)

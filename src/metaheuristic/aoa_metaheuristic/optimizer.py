@@ -124,6 +124,7 @@ class AOA:
                 # Correção de limites
                 pop_new[i, :] = np.clip(pop_new[i, :], self.lb, self.ub)
 
+            print(f"Rodando iteração:{iter}")
             fitness_new = np.array([self._eval(ind) for ind in pop_new])
 
             improved = fitness_new < fitness
@@ -135,7 +136,7 @@ class AOA:
                 pop_best = np.copy(pop[np.argmin(fitness)])
 
             conv_curve[iter - 1] = fitness_best
-            if verbose and iter % 10 == 0:
+            if verbose and iter % 1 == 0:
                 print(f"At iteration {iter} the best solution fitness is {fitness_best}")
             self.conv_curve = conv_curve
 

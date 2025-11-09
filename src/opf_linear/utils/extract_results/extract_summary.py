@@ -12,7 +12,7 @@ def extract_summary(net: Network, problem: pl.LpProblem) -> dict:
 
         # 2. Calcula todos os totais em p.u. primeiro
         total_generation_pu = sum(g.p_var.value() for g in net.generators)
-        total_load_pu = sum(l.p for l in net.loads)
+        total_load_pu = sum(l.p_pu for l in net.loads)
         total_loss_pu = sum(b.loss for b in net.buses if hasattr(b, "loss"))
         total_shedding_pu = sum(l.p_shed_var.value() for l in net.loads if hasattr(l, 'p_shed_var'))
 
