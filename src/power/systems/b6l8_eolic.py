@@ -1,4 +1,4 @@
-from .. import Network, Bus, Line, Generator, Load, WindGenerator, ThermalGenerator
+from power.electricity_models import Network, Bus, BusType, Line, Load, ThermalGenerator, WindGenerator
 class B6L8EOL(Network):
     """
     Classe para representar o sistema de 3 barras fornecido.
@@ -11,7 +11,6 @@ class B6L8EOL(Network):
         self._create_generators()
         self._create_loads()
 
-
     def _create_buses(self):
         """
         Cria as barras do sistema.
@@ -20,46 +19,46 @@ class B6L8EOL(Network):
         - Barras 2 ,e 3 são do tipo PV,
         - Tensão inicial de 1.0 p.u. e ângulo 0.0,, para todas as barras (exceto Slack que já tem ângulo 0).
         """
-        Bus(self, id=1, theta=   0.00, Sb=self.sb, bus_type='Slack')
-        Bus(self, id=2, theta=  -4.98, Sb=self.sb)
-        Bus(self, id=3, theta= -12.72, Sb=self.sb, v=1.05)
-        Bus(self, id=4, theta=   0.00, Sb=self.sb)
-        Bus(self, id=5, theta=  -4.98, Sb=self.sb)
-        Bus(self, id=6, theta= -12.72, Sb=self.sb)
+        Bus(self, id=1, theta_deg=   0.00, btype=BusType.SLACK)
+        Bus(self, id=2, theta_deg=  -4.98)
+        Bus(self, id=3, theta_deg= -12.72, v_pu=1.05)
+        Bus(self, id=4, theta_deg=   0.00)
+        Bus(self, id=5, theta_deg=  -4.98)
+        Bus(self, id=6, theta_deg= -12.72)
 
     def _create_lines(self):
         """
         Cria as linhas de transmissão.
         Suposição: O valor 'cap' na matriz DLIN é a susceptância total da linha (B),
-        portanto b_half = cap / 2. Os valores de R e X foram usados como fornecidos.
+        portanto shunt_half_pu = cap / 2. Os valores de R e X foram usados como fornecidos.
         """
-        Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r=0.01, x=0.1 , flow_max=0.15) 
-        Line(id=2, from_bus=self.buses[1], to_bus=self.buses[2], r=0.02, x=0.17, flow_max=0.15) 
-        Line(id=3, from_bus=self.buses[2], to_bus=self.buses[3], r=0.05, x=0.10, flow_max=0.10) 
-        Line(id=4, from_bus=self.buses[3], to_bus=self.buses[4], r=0.01, x=0.15, flow_max=0.25) 
-        Line(id=5, from_bus=self.buses[4], to_bus=self.buses[5], r=0.02, x=0.18, flow_max=0.20) 
-        Line(id=6, from_bus=self.buses[2], to_bus=self.buses[5], r=0.03, x=0.13, flow_max=0.30) 
-        Line(id=7, from_bus=self.buses[0], to_bus=self.buses[4], r=0.01, x=0.14, flow_max=0.30) 
-        Line(id=8, from_bus=self.buses[3], to_bus=self.buses[1], r=0.02, x=0.12, flow_max=0.20)
+        Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r_pu=0.01, x_pu=0.1 , flow_max_pu=0.15) 
+        Line(id=2, from_bus=self.buses[1], to_bus=self.buses[2], r_pu=0.02, x_pu=0.17, flow_max_pu=0.15) 
+        Line(id=3, from_bus=self.buses[2], to_bus=self.buses[3], r_pu=0.05, x_pu=0.10, flow_max_pu=0.10) 
+        Line(id=4, from_bus=self.buses[3], to_bus=self.buses[4], r_pu=0.01, x_pu=0.15, flow_max_pu=0.25) 
+        Line(id=5, from_bus=self.buses[4], to_bus=self.buses[5], r_pu=0.02, x_pu=0.18, flow_max_pu=0.20) 
+        Line(id=6, from_bus=self.buses[2], to_bus=self.buses[5], r_pu=0.03, x_pu=0.13, flow_max_pu=0.30) 
+        Line(id=7, from_bus=self.buses[0], to_bus=self.buses[4], r_pu=0.01, x_pu=0.14, flow_max_pu=0.30) 
+        Line(id=8, from_bus=self.buses[3], to_bus=self.buses[1], r_pu=0.02, x_pu=0.12, flow_max_pu=0.20)
 
 
     def _create_generators(self):
         """
         Cria os geradores do sistema.
-        Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_input).
+        Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_mw).
         Os geradores são apenas alocados às barras.
         """
-        ThermalGenerator(id=1, pb=self.sb, bus=self.buses[0], p_input=1, q_input=6.9, cost_b_input=10, p_max_input=50)
-        ThermalGenerator(id=2, pb=self.sb, bus=self.buses[2], p_input=0, q_input=0  , cost_b_input=20, p_max_input=70)
-        ThermalGenerator(id=3, pb=self.sb, bus=self.buses[3], p_input=0, q_input=0  , cost_b_input=30, p_max_input=60)
+        ThermalGenerator(id=1, bus=self.buses[0], p_mw=1, q_mvar=6.9, cost_b_mw=10, p_max_mw=50)
+        ThermalGenerator(id=2, bus=self.buses[2], p_mw=0, q_mvar=0  , cost_b_mw=20, p_max_mw=70)
+        ThermalGenerator(id=3, bus=self.buses[3], p_mw=0, q_mvar=0  , cost_b_mw=30, p_max_mw=60)
 
-        WindGenerator(id=4, pb=self.sb, bus=self.buses[0], p_max_input=50)
-        WindGenerator(id=5, pb=self.sb, bus=self.buses[2], p_max_input=70)
-        WindGenerator(id=6, pb=self.sb, bus=self.buses[3], p_max_input=60)
+        WindGenerator(id=4, bus=self.buses[0], p_max_mw=50)
+        WindGenerator(id=5, bus=self.buses[2], p_max_mw=70)
+        WindGenerator(id=6, bus=self.buses[3], p_max_mw=60)
     
     def _create_loads(self):
-        Load(id=1, bus=self.buses[1], pb=self.sb, p_input=20.0, q_input= 8.5, cost_shed_input=400)
-        Load(id=2, bus=self.buses[2], pb=self.sb, p_input=40.0, q_input=17.0, cost_shed_input=400)
-        Load(id=3, bus=self.buses[3], pb=self.sb, p_input=30.0, q_input= 4.0, cost_shed_input=400)
-        Load(id=4, bus=self.buses[4], pb=self.sb, p_input=30.0, q_input=12.7, cost_shed_input=400)
-        Load(id=5, bus=self.buses[5], pb=self.sb, p_input=40.0, q_input=17.3, cost_shed_input=400)
+        Load(id=1, bus=self.buses[1], p_mw=20.0, q_mvar= 8.5, cost_shed_mw=400)
+        Load(id=2, bus=self.buses[2], p_mw=40.0, q_mvar=17.0, cost_shed_mw=400)
+        Load(id=3, bus=self.buses[3], p_mw=30.0, q_mvar= 4.0, cost_shed_mw=400)
+        Load(id=4, bus=self.buses[4], p_mw=30.0, q_mvar=12.7, cost_shed_mw=400)
+        Load(id=5, bus=self.buses[5], p_mw=40.0, q_mvar=17.3, cost_shed_mw=400)

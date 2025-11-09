@@ -33,9 +33,9 @@ def extract_shedding(net: Network) -> dict:
             "corte_por_carga_mw": {
                 l.id: {
                     # As chaves agora refletem a unidade (MW)
-                    "demanda_nominal_mw": l.p * power_base,
+                    "demanda_nominal_mw": l.p_pu * power_base,
                     "carga_cortada_mw": l.p_shed_var.value() * power_base,
-                    "carga_atendida_mw": (l.p - l.p_shed_var.value()) * power_base
+                    "carga_atendida_mw": (l.p_pu - l.p_shed_var.value()) * power_base
                 }
                 for l in shed_loads
             }
