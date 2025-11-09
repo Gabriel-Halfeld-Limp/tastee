@@ -5,13 +5,10 @@ from pathlib import Path
 
 # --- Bibliotecas de Terceiros ---
 import numpy as np
-import pandas as pd
-import pulp as pl
 
 # --- Importações da Aplicação Local (CORRIGIDAS) ---
 
 # Imports absolutos a partir da raiz 'src'
-from power import Network, Bus, Line, Load, ThermalGenerator, WindGenerator
 from power.systems import *
 from opf_linear.opf_loss import LinearDispatch
 from opf_linear.utils.extract_results.extract_all import extract_all
