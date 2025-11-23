@@ -1,6 +1,15 @@
 from power import Network, ThermalGenerator, BusType
 import numpy as np
+import pandas as pd
 import pulp as pl
+
+class OptimizationError(RuntimeError):
+    """Raised when the LP/MIP solver does not find an optimal solution within an iteration."""
+    pass
+
+class ConvergenceError(RuntimeError):
+    """Raised when the outer fixed-point iteration on losses does not converge within the maximum number of iterations."""
+    pass
 
 class LinearDispatch:
     def __init__(self, net: Network):
@@ -62,8 +71,8 @@ class LinearDispatch:
     def _create_load_shed_variable(self):
         for l in self.net.loads:
             l.p_shed_var = pl.LpVariable(f"L_shed{l.id}")
-            self.problem += l.p_shed_var <= l.p_pu,       f"Constraint_P_Shed{l.id}_Upper"
-            self.problem += l.p_shed_var >= 0,         f"Constraint_P_Shed{l.id}_Lower"
+            self.problem += l.p_shed_var <= l.p_pu, f"Constraint_P_Shed{l.id}_Upper"
+            self.problem += l.p_shed_var >= 0,      f"Constraint_P_Shed{l.id}_Lower"
 
     # ----------------------------------------------------------------CREATE CONSTRAINTS------------------------------------------------------------------------------------#
     def _nodal_power_balance(self):
@@ -91,20 +100,16 @@ class LinearDispatch:
         for l in self.net.lines:
             r = l.r_pu
             x = l.x_pu
-            # Evita divisão por zero se a linha não tiver impedância
             g_series = r / (r**2 + x**2) if (r**2 + x**2) > 0 else 0
-            
-            # .value() é um alias para .varValue, mais limpo de ler
             dtheta = l.from_bus.theta_var.value() - l.to_bus.theta_var.value()
-            
             line_loss = g_series * (dtheta ** 2)
             l.loss = line_loss
             current_total_loss += line_loss
-            
+
             # Atribui metade da perda para cada barra da linha
             l.from_bus.loss += line_loss / 2
             l.to_bus.loss += line_loss / 2
-            
+
         return current_total_loss
 
     def _update_flow_sign(self):
@@ -117,9 +122,64 @@ class LinearDispatch:
                 line.flow_sign = 0
             else:
                 raise ValueError(f"Fluxo não foi corretamente calculado, o sentido do fluxo não é negativo, nem positivo, nem zero")
+            
+    def _extract_results(self, FOB_value: float = None) -> dict:
+        """Extrai os resultados das variáveis de decisão após a resolução do problema."""
+        #Variáveis primais e duais dos geradores térmicos:
+        thermal_gen_results = {g.name: {
+            "P_MW": g.p_var.value() * self.net.sb_mva,
+            "Dual_Lower_Cost": self.problem.constraints[f"Constraint_P{g.id}_Lower"].pi,
+            "Dual_Upper_Cost": self.problem.constraints[f"Constraint_P{g.id}_Upper"].pi
+        } for g in self.net.thermal_generators}
+
+        # Variáveis Primais e duais dos geradores eólicos:
+        wind_gen_results = {g.name: {
+            "Avaible_MW": g.p_max_pu * self.net.sb_mva,
+            "P_MW": g.p_var.value() * self.net.sb_mva,
+            "Curtailment_MW": (g.p_max_pu - g.p_var.value()) * self.net.sb_mva,
+            "Dual_Lower_Cost": self.problem.constraints[f"Constraint_P{g.id}_Lower"].pi,
+            "Dual_Upper_Cost": self.problem.constraints[f"Constraint_P{g.id}_Upper"].pi
+        } for g in self.net.wind_generators}
+
+        # Variáveis Primais e duais dos cortes de carga:
+        load_shed_results = {l.name: {
+            "P_MW": l.p_pu * self.net.sb_mva,
+            "P_Shed_MW": l.p_shed_var.value() * self.net.sb_mva,
+            "Dual_Lower_Cost": self.problem.constraints[f"Constraint_P_Shed{l.id}_Lower"].pi,
+            "Dual_Upper_Cost": self.problem.constraints[f"Constraint_P_Shed{l.id}_Upper"].pi,
+        } for l in self.net.loads}
+
+        # Variáveis Primais e duais das linhas:
+        line_results = {f"Line {l.id} ({l.from_bus.id}->{l.to_bus.id})": {
+            "Flow_MW": l.flow_var.value() * self.net.sb_mva,
+            "Losses_MW": l.loss * self.net.sb_mva,
+            "Dual_Lower_Cost": self.problem.constraints[f"Constraint_Flow_{l.id}_Lower"].pi,
+            "Dual_Upper_Cost": self.problem.constraints[f"Constraint_Flow_{l.id}_Upper"].pi,
+        } for l in self.net.lines}
+
+        # Variáveis Primais e duais das barras:
+        bus_results = {b.name: {
+            "Theta_deg": float(np.rad2deg(b.theta_var.value())),
+            "Local_Marginal_Price": self.problem.constraints[f"B{b.id}_Power_Balance"].pi,
+            "Losses_MW": b.loss * self.net.sb_mva,
+            "Dual_Lower_Angle": self.problem.constraints[f"Constraint_Theta_{b.id}_Lower"].pi,
+            "Dual_Upper_Angle": self.problem.constraints[f"Constraint_Theta_{b.id}_Upper"].pi,
+        } for b in self.net.buses}
+
+        # Retorna todos os dados em um dicionário com DataFrames separados
+        results = {
+            "Thermal_Generation": pd.DataFrame(thermal_gen_results).T if thermal_gen_results else pd.DataFrame(),
+            "Wind_Generation": pd.DataFrame(wind_gen_results).T if wind_gen_results else pd.DataFrame(),
+            "Load_Shed": pd.DataFrame(load_shed_results).T if load_shed_results else pd.DataFrame(),
+            "Line": pd.DataFrame(line_results).T if line_results else pd.DataFrame(),
+            "Bus": pd.DataFrame(bus_results).T if bus_results else pd.DataFrame(),
+            "FOB_Value": FOB_value
+        }
+
+        return results
     
     # ----------------------------------------------------------------SOLVING----------------------------------------------------------------------------------------------#
-    def solve_min_loss(self):
+    def solve_min_loss(self, verbose=False, detailed_output=False):
         self.problem = pl.LpProblem("Min_Loss", pl.LpMinimize)
         self._create_theta_variable()
         self._create_flow_variable()
@@ -127,13 +187,38 @@ class LinearDispatch:
         self._create_load_shed_variable()
         self._fob_min_loss()
         self._nodal_power_balance() 
-        self.problem.solve() 
+        self.problem.solve(pl.PULP_CBC_CMD(msg=False)) 
         if self.problem.status == pl.LpStatusOptimal:
-            return pl.value(self.problem.objective)
+            results = self._extract_results(pl.value(self.problem.objective))
+            if verbose:
+                print("Solução encontrada.")
+                print("Custo Total do Sistema: {:.4f}".format(pl.value(self.problem.objective)))
+                if getattr(self.net, 'wind_generators', []):
+                    print(f"Curtailment Total: {sum((g.p_max_pu - g.p_var.value()) * self.net.sb_mva for g in self.net.wind_generators):.4f} MW")
+                print(f"Shed Total: {sum(l.p_shed_var.value() * self.net.sb_mva for l in self.net.loads):.4f} MW")
+                if detailed_output:
+                    if not results["Thermal_Generation"].empty:
+                        print("\n--- Geradores Térmicos ---")
+                        print(results["Thermal_Generation"])
+                    if not results["Wind_Generation"].empty:
+                        print("\n--- Geradores Eólicos ---")
+                        print(results["Wind_Generation"])
+                    if not results["Load_Shed"].empty:
+                        print("\n--- Cortes de Carga ---")
+                        print(results["Load_Shed"])
+                    if not results["Line"].empty:
+                        print("\n--- Linhas ---")
+                        print(results["Line"])
+                    if not results["Bus"].empty:
+                        print("\n--- Barras ---")
+                        print(results["Bus"])
+            return results
         else:
-            return print("ERRO: Solução ótima não encontrada.")
+            raise OptimizationError(
+                f"Solução ótima não encontrada em solve_min_loss. Status: {pl.LpStatus[self.problem.status]}"
+            )
 
-    def solve_econ_dispatch(self):
+    def solve_econ_dispatch(self, verbose=False, detailed_output=False):
         self.problem = pl.LpProblem("Economic_Dispatch", pl.LpMinimize)
         self._create_theta_variable()
         self._create_flow_variable()
@@ -141,13 +226,38 @@ class LinearDispatch:
         self._create_load_shed_variable()
         self._fob_linear_econ_dispatch()
         self._nodal_power_balance() 
-        self.problem.solve()
+        self.problem.solve(pl.PULP_CBC_CMD(msg=False))
         if self.problem.status == pl.LpStatusOptimal:
-            return pl.value(self.problem.objective)
+            results = self._extract_results(pl.value(self.problem.objective))
+            if verbose:
+                print("Solução encontrada.")
+                print("Custo Total do Sistema: {:.4f}".format(pl.value(self.problem.objective)))
+                if getattr(self.net, 'wind_generators', []):
+                    print(f"Curtailment Total: {sum((g.p_max_pu - g.p_var.value()) * self.net.sb_mva for g in self.net.wind_generators):.4f} MW")
+                print(f"Shed Total: {sum(l.p_shed_var.value() * self.net.sb_mva for l in self.net.loads):.4f} MW")
+                if detailed_output:
+                    if not results["Thermal_Generation"].empty:
+                        print("\n--- Geradores Térmicos ---")
+                        print(results["Thermal_Generation"])
+                    if not results["Wind_Generation"].empty:
+                        print("\n--- Geradores Eólicos ---")
+                        print(results["Wind_Generation"])
+                    if not results["Load_Shed"].empty:
+                        print("\n--- Cortes de Carga ---")
+                        print(results["Load_Shed"])
+                    if not results["Line"].empty:
+                        print("\n--- Linhas ---")
+                        print(results["Line"])
+                    if not results["Bus"].empty:
+                        print("\n--- Barras ---")
+                        print(results["Bus"])
+            return results
         else:
-            return print("ERRO: Solução ótima não encontrada.")
+            raise OptimizationError(
+                f"Solução ótima não encontrada em solve_min_loss. Status: {pl.LpStatus[self.problem.status]}"
+            )
 
-    def solve_loss(self, iter_max=100, max_tol=1e-6, min_losses=False):
+    def solve_loss(self, iter_max=100, max_tol=1e-6, verbose=False, detailed_output=False):
         """
         Resolve o despacho econômico de forma iterativa para incluir as perdas da rede.
         """
@@ -156,17 +266,15 @@ class LinearDispatch:
         self._create_flow_variable()
         self._create_generation_variable()
         self._create_load_shed_variable()
-        if not min_losses:
-            self._fob_linear_econ_dispatch()
-        else:
-            self._fob_min_loss()
+        self._fob_linear_econ_dispatch()
         self._nodal_power_balance() 
         prev_total_loss = 0
         for i in range(1, iter_max + 1):
             self.problem.solve(pl.PULP_CBC_CMD(msg=False))
             if self.problem.status != pl.LpStatusOptimal:
-                print(f"ERRO: Solução ótima não encontrada na iteração {i}.")
-                return (pl.LpStatus[self.problem.status], None, None)
+                raise OptimizationError(
+                    f"Solução ótima não encontrada durante a iteração {i} do solver com perdas. Status: {pl.LpStatus[self.problem.status]}"
+                )
             current_total_loss = self._update_losses()
             loss_diff = abs(current_total_loss - prev_total_loss)
             if loss_diff <= max_tol:
@@ -177,11 +285,43 @@ class LinearDispatch:
                 self.problem.constraints.pop(constraint_name)
             self._nodal_power_balance()
         else: 
-            print(f"\nAviso: Convergência não atingida após {iter_max} iterações.")
-
-        final_cost = pl.value(self.problem.objective)
+            raise ConvergenceError(
+                f"Convergência não atingida após {iter_max} iterações."
+            )
         
-        return (pl.LpStatus[self.problem.status], final_cost, current_total_loss)
+        results = self._extract_results(pl.value(self.problem.objective))
+
+        if verbose:
+            # Imprime resultado na tela:
+            print ("Solução encontrada após {} iterações.".format(i))
+            print ("Custo Total do Sistema: {:.4f}".format(pl.value(self.problem.objective)))
+            print ("Perdas Totais do Sistema: {:.4f} MW".format(current_total_loss * self.net.sb_mva))
+            if getattr(self.net, 'wind_generators', []):
+                print(f"Curtailment Total: {sum((g.p_max_pu - g.p_var.value()) * self.net.sb_mva for g in self.net.wind_generators):.4f} MW")
+            print(f"Shed Total: {sum(l.p_shed_var.value() * self.net.sb_mva for l in self.net.loads):.4f} MW")
+
+            if detailed_output:
+                # Imprime resultados detalhados dos geradores térmicos
+                if not results["Thermal_Generation"].empty:
+                    print("\n--- Geradores Térmicos ---")
+                    print(results["Thermal_Generation"])
+                # Imprime resultados detalhados dos geradores eólicos
+                if not results["Wind_Generation"].empty:
+                    print("\n--- Geradores Eólicos ---")
+                    print(results["Wind_Generation"])
+                # Imprime resultados detalhados dos cortes de carga
+                if not results["Load_Shed"].empty:
+                    print("\n--- Cortes de Carga ---")
+                    print(results["Load_Shed"])
+                # Imprime resultados detalhados das linhas
+                if not results["Line"].empty:
+                    print("\n--- Linhas ---")
+                    print(results["Line"])
+                # Imprime resultados detalhados das barras
+                if not results["Bus"].empty:
+                    print("\n--- Barras ---")
+                    print(results["Bus"])
+        return results
 
 if __name__ == "__main__":
     from power.systems.b6l8 import B6L8

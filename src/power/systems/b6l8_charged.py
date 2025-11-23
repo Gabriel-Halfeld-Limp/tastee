@@ -11,19 +11,6 @@ class B6L8Charged(Network):
         self._create_generators()
         self._create_loads()
 
-        ThermalGenerator(id=1, bus=self.buses[0], p_mw=1, q_mvar=6.9, cost_b_mw=10, p_max_mw=50)
-        ThermalGenerator(id=2, bus=self.buses[2], p_mw=0, q_mvar=0  , cost_b_mw=20, p_max_mw=70)
-        ThermalGenerator(id=3, bus=self.buses[3], p_mw=0, q_mvar=0  , cost_b_mw=30, p_max_mw=60)
-        WindGenerator(id=4, bus=self.buses[0], p_max_mw=70)
-        WindGenerator(id=5, bus=self.buses[2], p_max_mw=70)
-        WindGenerator(id=6, bus=self.buses[3], p_max_mw=70)
-
-        Load(id=1, bus=self.buses[1], p_mw=2*20.0, q_mvar= 8.5, cost_shed_mw=400)
-        Load(id=2, bus=self.buses[2], p_mw=2*40.0, q_mvar=17.0, cost_shed_mw=400)
-        Load(id=3, bus=self.buses[3], p_mw=2*30.0, q_mvar= 4.0, cost_shed_mw=400)
-        Load(id=4, bus=self.buses[4], p_mw=2*30.0, q_mvar=12.7, cost_shed_mw=400)
-        Load(id=5, bus=self.buses[5], p_mw=2*40.0, q_mvar=17.3, cost_shed_mw=400)
-
     def _create_buses(self):
         """
         Cria as barras do sistema.
