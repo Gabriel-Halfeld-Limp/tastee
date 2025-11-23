@@ -33,6 +33,7 @@ class Bus(AbstractNode):
     wind_generators:    List["WindGenerator"]    = field(default_factory=list)
     solar_generators:   List["SolarGenerator"]   = field(default_factory=list)
     hydro_generators:   List["HydroGenerator"]   = field(default_factory=list)
+    batteries:          List["Battery"]          = field(default_factory=list)
 
     def __post_init__(self):
         if self.name is None:
@@ -79,7 +80,8 @@ class Bus(AbstractNode):
                 self.hydro_generators.append(generator)
             elif class_name == 'SolarGenerator':
                 self.solar_generators.append(generator)
-
+            elif class_name == 'Battery':
+                self.batteries.append(generator)
 
     def add_load(self, load: 'Load'):
         "Add a load to this bus"
