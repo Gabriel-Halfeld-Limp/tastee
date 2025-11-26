@@ -22,6 +22,9 @@ class LinearDispatch:
         # Initializing losses on each bus:
         for b in self.net.buses:
             b.loss = 0
+        
+        for l in self.net.lines:
+            l.loss = 0
 
         # RNG da classe
         self.rng = np.random.default_rng(seed=42)
@@ -289,16 +292,25 @@ class LinearDispatch:
                 f"Convergência não atingida após {iter_max} iterações."
             )
         
+        perdas_totais = sum(b.loss for b in self.net.buses) * self.net.sb_mva
+        curtailment_total = sum((g.p_max_pu - g.p_var.value()) * self.net.sb_mva for g in self.net.wind_generators) if getattr(self.net, 'wind_generators', []) else 0.0
+        shed_total = sum(l.p_shed_var.value() * self.net.sb_mva for l in self.net.loads) if getattr(self.net, 'loads', []) else 0.0    
+        df_resumo = pd.DataFrame({
+            "Total_Cost_System": [pl.value(self.problem.objective)],
+            "Total_Losses_MW": [perdas_totais],
+            "Total_Curtailment_MW": [curtailment_total],
+            "Total_Shed_MW": [shed_total]
+        })
         results = self._extract_results(pl.value(self.problem.objective))
+        results["Resumo"] = df_resumo
 
         if verbose:
             # Imprime resultado na tela:
+
             print ("Solução encontrada após {} iterações.".format(i))
-            print ("Custo Total do Sistema: {:.4f}".format(pl.value(self.problem.objective)))
-            print ("Perdas Totais do Sistema: {:.4f} MW".format(current_total_loss * self.net.sb_mva))
-            if getattr(self.net, 'wind_generators', []):
-                print(f"Curtailment Total: {sum((g.p_max_pu - g.p_var.value()) * self.net.sb_mva for g in self.net.wind_generators):.4f} MW")
-            print(f"Shed Total: {sum(l.p_shed_var.value() * self.net.sb_mva for l in self.net.loads):.4f} MW")
+            print ("Perdas Totais do Sistema: {:.4f} MW".format(perdas_totais))
+            print ("Curtailment Total: {:.4f} MW".format(curtailment_total))
+            print ("Shed Total: {:.4f} MW".format(shed_total))
 
             if detailed_output:
                 # Imprime resultados detalhados dos geradores térmicos
