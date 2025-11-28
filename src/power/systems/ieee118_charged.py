@@ -1,5 +1,5 @@
 from power.electricity_models import Network, Bus, BusType, Line, Load, WindGenerator, ThermalGenerator
-class IEEE118EOL(Network):
+class IEEE118Charged(Network):
     """Class to represent the IEEE 118 bus system.
     """
 
@@ -358,17 +358,17 @@ class IEEE118EOL(Network):
         ThermalGenerator(id=13,   bus=self.buses[ 89], p_mw=-85.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 250.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 90.0)
 
         # Wind Generators from DGW data
-        WindGenerator(id=14, bus=self.buses[  0], p_min_mw=0.0, p_max_mw=10.0)
-        WindGenerator(id=15, bus=self.buses[  7], p_min_mw=0.0, p_max_mw=10.0)
-        WindGenerator(id=16, bus=self.buses[ 14], p_min_mw=0.0, p_max_mw=15.0)
-        WindGenerator(id=17, bus=self.buses[ 23], p_min_mw=0.0, p_max_mw=15.0)
-        WindGenerator(id=18, bus=self.buses[ 53], p_min_mw=0.0, p_max_mw=30.0)
-        WindGenerator(id=19, bus=self.buses[ 58], p_min_mw=0.0, p_max_mw=20.0)
-        WindGenerator(id=20, bus=self.buses[ 68], p_min_mw=0.0, p_max_mw=20.0)
-        WindGenerator(id=21, bus=self.buses[ 73], p_min_mw=0.0, p_max_mw=10.0)
-        WindGenerator(id=22, bus=self.buses[ 79], p_min_mw=0.0, p_max_mw=15.0)
-        WindGenerator(id=23, bus=self.buses[ 84], p_min_mw=0.0, p_max_mw=10.0)
-        WindGenerator(id=24, bus=self.buses[109], p_min_mw=0.0, p_max_mw=20.0)
+        WindGenerator(id=14, bus=self.buses[  0], p_min_mw=0.0, p_max_mw=10*10.0)
+        WindGenerator(id=15, bus=self.buses[  7], p_min_mw=0.0, p_max_mw=10*10.0)
+        WindGenerator(id=16, bus=self.buses[ 14], p_min_mw=0.0, p_max_mw=10*15.0)
+        WindGenerator(id=17, bus=self.buses[ 23], p_min_mw=0.0, p_max_mw=10*15.0)
+        WindGenerator(id=18, bus=self.buses[ 53], p_min_mw=0.0, p_max_mw=10*30.0)
+        WindGenerator(id=19, bus=self.buses[ 58], p_min_mw=0.0, p_max_mw=10*20.0)
+        WindGenerator(id=20, bus=self.buses[ 68], p_min_mw=0.0, p_max_mw=10*20.0)
+        WindGenerator(id=21, bus=self.buses[ 73], p_min_mw=0.0, p_max_mw=10*10.0)
+        WindGenerator(id=22, bus=self.buses[ 79], p_min_mw=0.0, p_max_mw=10*15.0)
+        WindGenerator(id=23, bus=self.buses[ 84], p_min_mw=0.0, p_max_mw=10*10.0)
+        WindGenerator(id=24, bus=self.buses[109], p_min_mw=0.0, p_max_mw=10*20.0)
 
     def _create_loads(self):
         """Create Load objects using the PLOAD/QLOAD columns from DBAR.
@@ -426,7 +426,7 @@ class IEEE118EOL(Network):
         Load(id= 46, bus=self.buses[ 55], p_mw= 84.0, q_mvar=18.0, cost_shed_mw=400)
         Load(id= 47, bus=self.buses[ 56], p_mw= 12.0, q_mvar= 3.0, cost_shed_mw=400)
         Load(id= 48, bus=self.buses[ 57], p_mw= 12.0, q_mvar= 3.0, cost_shed_mw=400)
-        Load(id= 49, bus=self.buses[ 58], p_mw=277.0, q_mvar=113.0, cost_shed_mw=400)
+        Load(id= 49, bus=self.buses[ 58], p_mw=277.0, q_mvar=113.0,cost_shed_mw=400)
         Load(id= 50, bus=self.buses[ 59], p_mw= 78.0, q_mvar= 3.0, cost_shed_mw=400)
         Load(id= 51, bus=self.buses[ 61], p_mw= 77.0, q_mvar=14.0, cost_shed_mw=400)
         Load(id= 52, bus=self.buses[ 65], p_mw= 39.0, q_mvar=18.0, cost_shed_mw=400)
