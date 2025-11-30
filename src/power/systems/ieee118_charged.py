@@ -474,7 +474,7 @@ class IEEE118Charged(Network):
 if __name__ == "__main__":
     # Simple smoke test when running as a module
     # Run from the repository root with: python -m power.systems.ieee118
-    net = IEEE118EOL()
+    net = IEEE118Charged()
     print(f"IEEE118 instantiated: buses={len(net.buses)}, lines={len(net.lines)}, generators={len(net.generators)}, loads={len(net.loads)}")
     # Print a couple of sample objects to sanity-check references
     if net.buses:

@@ -32,9 +32,10 @@ class LinearDispatch:
     def _fob_linear_econ_dispatch(self):
         """Define a função objetivo do problema (minimizar custo total)."""
         thermal_cost = pl.lpSum([g.cost_b_pu * g.p_var for g in self.net.thermal_generators])
-        generation_cost = thermal_cost
         shedding_cost = pl.lpSum([l.cost_shed_pu * l.p_shed_var for l in self.net.loads if hasattr(l, 'p_shed_var')])
-        self.problem += generation_cost + shedding_cost, "Min_Total_System_Cost"
+        battery_out = pl.lpSum([b.cost_discharge_pu * b.p_out_var for b in self.net.batteries if hasattr(b, 'p_out_var')])
+        battery_in = pl.lpSum([b.cost_charge_pu * b.p_in_var for b in self.net.batteries if hasattr(b, 'p_in_var')])
+        self.problem += thermal_cost + shedding_cost + battery_out + battery_in, "Min_Total_System_Cost"
     
     def _fob_min_loss(self):
         self.problem += pl.lpSum([g.p_var for g in self.net.generators]), "Min_Loss"
@@ -66,10 +67,16 @@ class LinearDispatch:
             self.problem += line.flow_var == ((line.from_bus.theta_var - line.to_bus.theta_var) / line.x_pu), f"Constraint_Flow_{line.id}"
     
     def _create_generation_variable(self):
-        for g in self.net.generators:
+        for g in self.net.thermal_generators:
             g.p_var = pl.LpVariable(f"P{g.id}")
             self.problem += g.p_var <= g.p_max_pu, f"Constraint_P{g.id}_Upper"
             self.problem += g.p_var >= g.p_min_pu, f"Constraint_P{g.id}_Lower"
+        
+        for g in self.net.wind_generators:
+            g.p_var = pl.LpVariable(f"P{g.id}")
+            self.problem += g.p_var <= g.p_max_pu, f"Constraint_P{g.id}_Upper"
+            self.problem += g.p_var >= g.p_min_pu, f"Constraint_P{g.id}_Lower"
+
 
     def _create_load_shed_variable(self):
         for l in self.net.loads:
@@ -77,18 +84,39 @@ class LinearDispatch:
             self.problem += l.p_shed_var <= l.p_pu, f"Constraint_P_Shed{l.id}_Upper"
             self.problem += l.p_shed_var >= 0,      f"Constraint_P_Shed{l.id}_Lower"
 
+    def _create_battery_variable(self):
+        for b in self.net.batteries:
+            # Battery Discharge Variable
+            b.p_out_var = pl.LpVariable(f"P_Out{b.id}")
+            # Discharge limits
+            self.problem += b.p_out_var <= b.p_max_pu, f"Constraint_P_Out{b.id}_Upper"
+            self.problem += b.p_out_var >= 0,          f"Constraint_P_Out{b.id}_Lower"
+
+            # Battery Charge Variable
+            b.p_in_var = pl.LpVariable(f"P_In{b.id}")
+            # Charge limits
+            self.problem += b.p_in_var <= -b.p_min_pu, f"Constraint_P_In{b.id}_Upper"
+            self.problem += b.p_in_var >= 0,           f"Constraint_P_In{b.id}_Lower"
+
+            # Battery SOC Constraint
+            self.problem += b.p_in_var + b.soc_pu <= b.capacity_pu, f"Constraint_SOC_{b.id}_Upper"
+            self.problem += b.soc_pu - b.p_out_var >= 0,            f"Constraint_SOC_{b.id}_Lower"
+
     # ----------------------------------------------------------------CREATE CONSTRAINTS------------------------------------------------------------------------------------#
     def _nodal_power_balance(self):
         for b in self.net.buses:
-            generation = pl.lpSum([g.p_var for g in b.generators])
-            load = sum([l.p_pu for l in b.loads]) + b.loss
+            thermal_generation = pl.lpSum([g.p_var for g in b.thermal_generators])
+            wind_generation = pl.lpSum([g.p_var for g in b.wind_generators])
+            bat_generation = pl.lpSum([ (batt.p_out_var) for batt in b.batteries])
+            bat_charge = pl.lpSum([ (batt.p_in_var) for batt in b.batteries])
+            generation = thermal_generation + wind_generation + bat_generation - bat_charge
             load_shed = pl.lpSum([l.p_shed_var for l in b.loads])
             flow_in = pl.lpSum([(l.from_bus.theta_var - b.theta_var) / l.x_pu for l in self.net.lines if l.to_bus == b])
             flow_out = pl.lpSum([(b.theta_var - l.to_bus.theta_var) / l.x_pu for l in self.net.lines if l.from_bus == b])
+            load = sum([l.p_pu for l in b.loads]) + b.loss
             self.problem += generation + load_shed + flow_in - flow_out == load, f"B{b.id}_Power_Balance"
 
     # ----------------------------------------------------------------UTILS------------------------------------------------------------------------------------------------#
-
     def _update_losses(self):
         """
         Calcula as perdas com base nos ângulos da solução atual e as atualiza nas barras.
@@ -144,6 +172,20 @@ class LinearDispatch:
             "Dual_Upper_Cost": self.problem.constraints[f"Constraint_P{g.id}_Upper"].pi
         } for g in self.net.wind_generators}
 
+        # Variáveis Primais e duais das baterias:
+        battery_results = {b.name: {
+            "P_Out_MW": b.p_out_var.value() * self.net.sb_mva,
+            "P_In_MW": b.p_in_var.value() * self.net.sb_mva,
+            "Initial_SOC_MWh": b.soc_mwh,
+            "Final_SOC_MWh": b.soc_mwh + (b.p_in_var.value() - b.p_out_var.value()) * self.net.sb_mva,
+            "Dual_Lower_Out": self.problem.constraints[f"Constraint_P_Out{b.id}_Lower"].pi,
+            "Dual_Upper_Out": self.problem.constraints[f"Constraint_P_Out{b.id}_Upper"].pi,
+            "Dual_Lower_In": self.problem.constraints[f"Constraint_P_In{b.id}_Lower"].pi,
+            "Dual_Upper_In": self.problem.constraints[f"Constraint_P_In{b.id}_Upper"].pi,
+            "Dual_Lower_SOC": self.problem.constraints[f"Constraint_SOC_{b.id}_Lower"].pi,
+            "Dual_Upper_SOC": self.problem.constraints[f"Constraint_SOC_{b.id}_Upper"].pi,
+        } for b in self.net.batteries}
+
         # Variáveis Primais e duais dos cortes de carga:
         load_shed_results = {l.name: {
             "P_MW": l.p_pu * self.net.sb_mva,
@@ -173,6 +215,7 @@ class LinearDispatch:
         results = {
             "Thermal_Generation": pd.DataFrame(thermal_gen_results).T if thermal_gen_results else pd.DataFrame(),
             "Wind_Generation": pd.DataFrame(wind_gen_results).T if wind_gen_results else pd.DataFrame(),
+            "Battery": pd.DataFrame(battery_results).T if battery_results else pd.DataFrame(),
             "Load_Shed": pd.DataFrame(load_shed_results).T if load_shed_results else pd.DataFrame(),
             "Line": pd.DataFrame(line_results).T if line_results else pd.DataFrame(),
             "Bus": pd.DataFrame(bus_results).T if bus_results else pd.DataFrame(),
@@ -269,6 +312,7 @@ class LinearDispatch:
         self._create_flow_variable()
         self._create_generation_variable()
         self._create_load_shed_variable()
+        self._create_battery_variable()
         self._fob_linear_econ_dispatch()
         self._nodal_power_balance() 
         prev_total_loss = 0

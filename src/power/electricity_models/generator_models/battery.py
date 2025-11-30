@@ -4,12 +4,12 @@ from power.electricity_models.generator_models.generator import Generator
 
 @dataclass
 class Battery(Generator):
-    capacity_mwh: float = 0.0  # Energia total armazenável
-    soc_mwh:      float = 0.0  # Estado de carga atual (energia) em MWh
-    efficiency_charge: float = 0.95  # Eficiência de carga
+    capacity_mwh:         float = 0.0           # Energia total armazenável
+    soc_mwh:              float = 0.0           # Estado de carga atual (energia) em MWh
+    efficiency_charge:    float = 0.95     # Eficiência de carga
     efficiency_discharge: float = 0.95  # Eficiência de descarga
-    cost_charge_mw: float = 0.0  # Custo de carregar por MW
-    cost_discharge_mw: float = 0.0  # Custo de descarregar por MW
+    cost_charge_mw:       float = -1       # Custo de carregar por MW (custo negativo indica pagamento para carregar)
+    cost_discharge_mw:    float = 0.0      # Custo de descarregar por MW
 
     def __post_init__(self):
         super().__post_init__()
@@ -37,8 +37,6 @@ class Battery(Generator):
 
     @soc_pu.setter
     def soc_pu(self, new_soc_pu: float):
-        if not (0.0 <= new_soc_pu <= 1.0):
-            raise ValueError("Estado de carga em pu deve estar entre 0 e 1.")
         self.soc_mwh = new_soc_pu * self.capacity_mwh
 
     # --- Custos em pu ---
