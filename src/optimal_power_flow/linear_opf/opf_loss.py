@@ -350,7 +350,7 @@ class LinearDispatch:
 
         if verbose:
             # Imprime resultado na tela:
-
+            print("FOB: {:.4f}".format(pl.value(self.problem.objective)))
             print ("Solução encontrada após {} iterações.".format(i))
             print ("Perdas Totais do Sistema: {:.4f} MW".format(perdas_totais))
             print ("Curtailment Total: {:.4f} MW".format(curtailment_total))
