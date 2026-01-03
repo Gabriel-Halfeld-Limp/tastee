@@ -20,11 +20,10 @@ class B3(Network):
         - Barras 2 e 3 são do tipo PV
         - Tensão inicial de 1.0 p.u. e ângulo 0.0 para todas as barras (exceto Slack que já tem ângulo 0).
         """
-        self.buses = [
-            Bus(self, id=1, btype=BusType.SLACK),
-            Bus(self, id=2),
-            Bus(self, id=3),
-        ]
+        Bus(self, id=1, btype=BusType.SLACK)
+        Bus(self, id=2)
+        Bus(self, id=3)
+
 
     def _create_lines(self):
         """
@@ -32,12 +31,10 @@ class B3(Network):
         Suposição: O valor 'cap' na matriz DLIN é a susceptância total da linha (B),
         portanto shunt_half_pu = cap / 2. Os valores de R e X foram usados como fornecidos.
         """
-        self.lines = [
-            # Line(id, from, to, r_pu, x_pu, shunt_half_pu)
-            Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r_pu=0.10,  x_pu=1  , flow_max_pu=0.02), 
-            Line(id=2, from_bus=self.buses[0], to_bus=self.buses[2], r_pu=0.15,  x_pu=1  , flow_max_pu=0.10),  
-            Line(id=3, from_bus=self.buses[1], to_bus=self.buses[2], r_pu=0.05,  x_pu=0.5, flow_max_pu=0.10), 
-        ]
+        Line(id=1, from_bus=self.buses[0], to_bus=self.buses[1], r_pu=0.10,  x_pu=1  , flow_max_pu=0.02)
+        Line(id=2, from_bus=self.buses[0], to_bus=self.buses[2], r_pu=0.15,  x_pu=1  , flow_max_pu=0.10)
+        Line(id=3, from_bus=self.buses[1], to_bus=self.buses[2], r_pu=0.05,  x_pu=0.5, flow_max_pu=0.10)
+
 
     def _create_generators(self):
         """
@@ -45,8 +42,8 @@ class B3(Network):
         Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_mw).
         Os geradores são apenas alocados às barras.
         """
-        ThermalGenerator(id=1, bus=self.buses[0], cost_b_mw=10, p_max_mw=15),
-        ThermalGenerator(id=2, bus=self.buses[1], cost_b_mw=20, p_max_mw=15),
+        ThermalGenerator(id=1, bus=self.buses[0], cost_b_mw=10, p_max_mw=15)
+        ThermalGenerator(id=2, bus=self.buses[1], cost_b_mw=20, p_max_mw=15)
 
     def _create_loads(self):
         """

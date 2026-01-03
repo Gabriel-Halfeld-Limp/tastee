@@ -45,8 +45,6 @@ class B6L8EOL(Network):
     def _create_generators(self):
         """
         Cria os geradores do sistema.
-        Nota: A matriz DGER define limites e custos, mas não a potência ativa inicial (p_mw).
-        Os geradores são apenas alocados às barras.
         """
         ThermalGenerator(id=1, bus=self.buses[0], p_mw=1, q_mvar=6.9, cost_b_mw=10, p_max_mw=50)
         ThermalGenerator(id=2, bus=self.buses[2], p_mw=0, q_mvar=0  , cost_b_mw=20, p_max_mw=70)

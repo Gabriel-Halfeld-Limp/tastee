@@ -1,7 +1,7 @@
 import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Optional
-from power.electricity_models.generator_models import Generator, ThermalGenerator, WindGenerator, SolarGenerator, HydroGenerator
+from power.electricity_models.generator_models import Generator, ThermalGenerator, WindGenerator, SolarGenerator, HydroGenerator, Battery
 from power.electricity_models.line_models import Line
 from power.electricity_models.load_models import Load
 from power.electricity_models.bus_models import Bus
@@ -19,6 +19,7 @@ class Network:
     wind_generators:    List[WindGenerator]    = field(default_factory=list)
     solar_generators:   List[SolarGenerator]   = field(default_factory=list)
     hydro_generators:   List[HydroGenerator]   = field(default_factory=list)
+    batteries:          List[Battery]          = field(default_factory=list)
 
     #Attributes for caching
     _ybus: Optional[np.ndarray] = field(default=None, init=False, repr=False)
@@ -87,6 +88,8 @@ class Network:
                 self.hydro_generators.append(generator)
             elif isinstance(generator, SolarGenerator):
                 self.solar_generators.append(generator)
+            elif isinstance(generator, Battery):
+                self.batteries.append(generator)
     
     def _reset_matrices(self):
         """Invalida as matrizes Y/Z para forçar o recálculo após uma alteração na rede."""

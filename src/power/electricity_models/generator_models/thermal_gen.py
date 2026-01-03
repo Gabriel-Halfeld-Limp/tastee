@@ -7,7 +7,8 @@ class ThermalGenerator(Generator):
     cost_a_mw: float = 0.0
     cost_b_mw: float = 0.0
     cost_c_mw: float = 0.0
-    ramp_mw:   float = 0.0
+    max_ramp_up_mw: float = 99999
+    max_ramp_down_mw: float = -99999
 
     def __post_init__(self):
         super().__post_init__()
@@ -43,12 +44,20 @@ class ThermalGenerator(Generator):
     
     # --- Rampa (ramp_pu) ---
     @property
-    def ramp_pu(self) -> float:
-        return self.ramp_mw / self.sb_mva
-        
-    @ramp_pu.setter
-    def ramp_pu(self, new_ramp_pu: float):
-        self.ramp_mw = new_ramp_pu * self.sb_mva
+    def max_ramp_up_pu(self) -> float:
+        return self.max_ramp_up_mw / self.sb_mva
+    
+    @max_ramp_up_pu.setter
+    def max_ramp_up_pu(self, new_ramp_up_pu: float):
+        self.max_ramp_up_mw = new_ramp_up_pu * self.sb_mva
+    
+    @property
+    def max_ramp_down_pu(self) -> float:
+        return self.max_ramp_down_mw / self.sb_mva
+    
+    @max_ramp_down_pu.setter
+    def max_ramp_down_pu(self, new_ramp_down_pu: float):
+        self.max_ramp_down_mw = new_ramp_down_pu * self.sb_mva
 
     def __repr__(self):
         return (f"ThermalGenerator(id={self.id}, bus={self.bus.id}, p_mw={self.p_mw:.3f}, q_mvar={self.q_mvar:.3f}, "
