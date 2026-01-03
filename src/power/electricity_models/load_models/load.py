@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import numpy as np
 
+from data_models.time_series import TimeSeries
+
 from ..bus_models import Bus
 
 @dataclass
@@ -17,7 +19,8 @@ class Load:
     q_min_mvar:   float = None
     cost_shed_mw: float = 10000.0
     power_factor: float = 1.0
-    p_mw_series:  np.ndarray = field(default_factory=lambda: np.array([]))
+    p_mw_series: Optional[TimeSeries] = field(default=None, repr=False)
+    
     #Attributes for loads that make bids on a market
     cost_a_mw:    float = 0.0
     cost_b_mw:    float = 0.0
