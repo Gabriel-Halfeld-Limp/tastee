@@ -26,6 +26,8 @@ class Bus(AbstractNode):
     v_pu: float = 1.0        # Tensão (magnitude) em p.u.
     theta_deg: float = 0.0   # Ângulo: Armazenamos em 'graus' (degrees) por ser mais intuitivo.
     q_shunt_mvar: float = 0.0   # Potência reativa do shunt em MVAr (a 1.0 pu V)
+    # v_min_pu: float = 0.95 
+    # v_max_pu: float = 1.05
 
     loads:              List["Load"]             = field(default_factory=list, repr=False)
     generators:         List["Generator"]        = field(default_factory=list, repr=False)
