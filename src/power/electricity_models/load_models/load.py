@@ -44,7 +44,7 @@ class Load:
         self.p_mw = new_p_pu * self.sb_mva
     
     @property
-    def p_series(self) -> np.ndarray:
+    def p_pu_series(self) -> np.ndarray:
         return self.p_mw_series/ self.sb_mva
 
     # --- Potência Reativa (q) ---
@@ -57,8 +57,8 @@ class Load:
         self.q_mvar = new_q_pu * self.sb_mva
     
     @property
-    def q_series(self) -> np.ndarray:
-        return self.p_series * np.tan(np.arccos(self.power_factor))
+    def q_pu_series(self) -> np.ndarray:
+        return self.p_pu_series * np.tan(np.arccos(self.power_factor))
     
     # --- Potência Ativa Máxima (p_max_pu) ---
     @property
