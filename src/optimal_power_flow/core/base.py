@@ -54,7 +54,3 @@ class OPFBaseModel:
         model.HYDRO_GENERATORS   = Set(initialize=self.hydro_generators.keys(), within=model.GENERATORS)
         model.BESS               = Set(initialize=self.bess.keys(), within=model.GENERATORS)
         model.LOADS              = Set(initialize=self.loads.keys())
-
-
-
-

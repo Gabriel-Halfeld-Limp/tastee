@@ -133,14 +133,6 @@ class OPFDC(OPFBaseModel):
         m.p_bess_out = Var(m.BESS, bounds=(0, None), initialize=0)
         m.p_bess_in = Var(m.BESS, bounds=(0, None), initialize=0)
 
-    def update_bess_params(self):
-        """
-        Atualiza os parâmetros de Bateria no modelo Pyomo.
-        """
-        m = self.model
-        for g in m.BESS:
-            m.bess_soc_pu[g] = self.bess[g].soc_pu
-
     def add_bess_constraints(self):
         """
         Adiciona restrições operacionais para baterias.
@@ -153,14 +145,29 @@ class OPFDC(OPFBaseModel):
             return self.bess[g].soc_pu - m.p_bess_out[g] >= 0
         m.BESS_Discharge_Constraint = Constraint(m.BESS, rule=bess_discharge_rule)
 
+    def update_bess_params(self):
+        """
+        Atualiza os parâmetros de Bateria no modelo Pyomo.
+        """
+        m = self.model
+        for g in m.BESS:
+            m.bess_soc_pu[g] = self.bess[g].soc_pu
     # ------------- Bus ---------------#
     def create_bus_block(self):
         """
         Create all bus-related components (variables, constraints).
         """
+        self.create_bus_params()
         self.create_bus_angle_variables()
         self.add_dc_flow_constraints()
         self.add_nodal_balance_constraints()
+    
+    def create_bus_params(self):
+        """
+        Create bus-related parameters if needed.
+        """
+        m = self.model
+        m.bus_loss_pu = Param(m.BUSES, initialize=0, within=Reals, mutable=True)
 
     def create_bus_angle_variables(self):
         """
@@ -180,13 +187,27 @@ class OPFDC(OPFBaseModel):
         """
         m = self.model
         def nodal_balance_rule(m, b):
-            # Soma das gerações - soma das cargas + soma dos fluxos
-            gen = sum(self.generators[g].p_pu for g in self.generators if self.generators[g].bus == b)
-            load = sum(self.loads[l].p_pu for l in self.loads if self.loads[l].bus == b)
-            flow_in = sum(m.flow[l] for l in self.lines if self.lines[l].to_bus.name == b)
-            flow_out = sum(m.flow[l] for l in self.lines if self.lines[l].from_bus.name == b)
-            return gen - load + flow_in - flow_out == 0
+            # Soma das gerações (térmica, eólica, bateria) - cargas + shed + soma dos fluxos
+            gen_thermal = sum(m.p_thermal[g] for g in m.THERMAL_GENERATORS if self.thermal_generators[g].bus.name == b)
+            gen_wind = sum(m.p_wind[g] for g in m.WIND_GENERATORS if self.wind_generators[g].bus.name == b)
+            gen_bess_out = sum(m.p_bess_out[g] for g in m.BESS if self.bess[g].bus.name == b)
+            gen_bess_in = sum(m.p_bess_in[g] for g in m.BESS if self.bess[g].bus.name == b)
+            load = sum(m.load_p_pu[l] for l in m.LOADS if self.loads[l].bus.name == b)
+            shed = sum(m.p_shed[l] for l in m.LOADS if self.loads[l].bus.name == b)
+            loss = m.bus_loss_pu[b]
+            flow_in = sum(m.flow[l] for l in m.LINES if self.lines[l].to_bus.name == b)
+            flow_out = sum(m.flow[l] for l in m.LINES if self.lines[l].from_bus.name == b)
+            # geração total + shed + fluxo líquido = carga
+            return gen_thermal + gen_wind + gen_bess_out - gen_bess_in + shed + flow_in - flow_out == load + loss
         m.NodalBalanceConstraint = Constraint(m.BUSES, rule=nodal_balance_rule)
+    
+    def update_bus_params(self):
+        """
+        Update bus parameters in the Pyomo model if needed.
+        """
+        m = self.model
+        for b in m.BUSES:
+            m.bus_loss_pu[b] = self.buses[b].loss
     
     # ------------ Lines ---------------#
     def create_line_block(self):
