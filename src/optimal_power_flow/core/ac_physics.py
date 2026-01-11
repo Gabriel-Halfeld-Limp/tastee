@@ -1,7 +1,7 @@
-
 from pyomo.environ import *
 import numpy as np
-from power import Network
+from power import Network, BusType
+from optimal_power_flow.core.base import OPFBaseModel
 
 class OPFAC(OPFBaseModel):
     """
@@ -13,41 +13,264 @@ class OPFAC(OPFBaseModel):
     def __init__(self, network: Network):
         super().__init__(network)
 
-    def _build_base_model(self):
+    def build_physics(self):
         """
-        Constructs the base Pyomo model with AC power flow variables and constraints.
+        Constructs the Pyomo model with AC power flow variables and constraints.
         """
-        super()._build_base_model()
-        self._create_ac_variables()
-        self._create_ac_constraints()
+        self._build_base_model() # Set creation
+        self.create_bus_block()
+        self.create_thermal_block()
+        self.create_wind_block()
+        self.create_bess_block()
+        self.create_load_block()
+        self.create_line_block()
+        self.add_nodal_balance_constraints()
 
-    def _create_ac_variables(self):
+    def update_model(self):
         """
-        Defines the AC power flow variables for the Pyomo model.
+        Atualiza o modelo Pyomo com os novos parâmetros.
         """
-        model = self.model
+        self.update_load_params()
+        self.update_wind_params()
+        self.update_bess_params()
 
-        # Voltage magnitude and angle at each bus
-        model.Vm = Var(model.BUSES, model.T, within=NonNegativeReals, bounds=(0.95, 1.05), initialize=1.0)
-        model.Va = Var(model.BUSES, model.T, within=Reals, bounds=(-np.pi, np.pi), initialize=0.0)
+    # ------------- Thermal Generator ---------------#
+    def create_thermal_block(self):
+        self.create_thermal_variables()
 
-        # Active and reactive power generation at each generator
-        model.Pg = Var(model.GENERATORS, model.T, within=Reals, initialize=0.0)
-        model.Qg = Var(model.GENERATORS, model.T, within=Reals, initialize=0.0)
+    def create_thermal_variables(self):
+        m = self.model
+        m.p_thermal = Var(m.THERMAL_GENERATORS, bounds=lambda m, g: (self.thermal_generators[g].p_min_pu, self.thermal_generators[g].p_max_pu), initialize=0)
+        m.q_thermal = Var(m.THERMAL_GENERATORS, bounds=lambda m, g: (self.thermal_generators[g].q_min_pu, self.thermal_generators[g].q_max_pu), initialize=0)
 
-    def _create_ac_constraints(self):
-        """
-        Defines the AC power flow constraints for the Pyomo model.
-        """
-        model = self.model
+    # ------------- Load ---------------#
+    def create_load_block(self):
+        self.create_load_params()
+        self.create_load_shed_variables()
 
-        # Power balance constraints at each bus
-        def power_balance_rule(m, b, t):
-            Pg_sum = sum(m.Pg[g, t] for g in self.generators if self.generators[g].bus == b)
-            Qg_sum = sum(m.Qg[g, t] for g in self.generators if self.generators[g].bus == b)
-            Pd = sum(ld.active_power for ld in self.loads.values() if ld.bus == b)
-            Qd = sum(ld.reactive_power for ld in self.loads.values() if ld.bus == b)
+    def create_load_params(self):
+        m = self.model
+        m.load_p_pu = Param(m.LOADS, initialize=lambda m, l: self.loads[l].p_pu, within=NonNegativeReals, mutable=True)
+        m.load_q_pu = Param(m.LOADS, initialize=lambda m, l: getattr(self.loads[l], "q_pu", 0.0), within=Reals, mutable=True)
 
-            # Active power balance
-            active_power_balance = Pg_sum - Pd - sum(
-                self._calculate_line_flow_active(m, b, l, t) for l in self.lines if self.lines[l].from_bus == b or self.lines[l].to_bus == b
+    def create_load_shed_variables(self):
+        m = self.model
+        m.p_shed = Var(m.LOADS, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
+        m.Shed_Max_Constraint = Constraint(m.LOADS, rule=lambda m, l: m.p_shed[l] <= m.load_p_pu[l])
+
+    def update_load_params(self):
+        m = self.model
+        for l in m.LOADS:
+            m.load_p_pu[l] = self.loads[l].p_pu
+            if hasattr(self.loads[l], "q_pu"):
+                m.load_q_pu[l] = self.loads[l].q_pu
+
+    # ------------- Wind Generators ---------------#
+    def create_wind_block(self):
+        self.create_wind_params()
+        self.create_wind_variables()
+        self.create_wind_constraints()
+
+    def create_wind_params(self):
+        m = self.model
+        m.wind_max_p_pu = Param(m.WIND_GENERATORS, initialize=lambda m, g: self.wind_generators[g].p_max_pu, within=NonNegativeReals, mutable=True)
+
+    def create_wind_variables(self):
+        m = self.model
+        m.p_wind = Var(m.WIND_GENERATORS, bounds=(0, None), initialize=lambda m, g: self.wind_generators[g].p_max_pu)
+        m.q_wind = Var(m.WIND_GENERATORS, initialize=0)
+    
+    def create_wind_constraints(self):
+        m = self.model
+        m.Wind_Max_Constraint = Constraint(m.WIND_GENERATORS, rule=lambda m, g: m.p_wind[g] <= m.wind_max_p_pu[g])
+        def wind_inverter_rule(m, g):
+            s_max = self.wind_generators[g].inverter_s_max_pu
+            if s_max is None:
+                return m.q_wind[g] == 0
+            return m.q_wind[g]**2 + m.p_wind[g]**2 <= s_max**2
+        m.Wind_Inverter_Constraint = Constraint(m.WIND_GENERATORS, rule=wind_inverter_rule)
+
+    def update_wind_params(self):
+        m = self.model
+        for g in m.WIND_GENERATORS:
+            m.wind_max_p_pu[g] = self.wind_generators[g].p_max_pu
+
+    # ------------- Battery (BESS) ---------------#
+    def create_bess_block(self):
+        self.create_bess_params()
+        self.create_bess_variables()
+        self.add_bess_constraints()
+
+    def create_bess_params(self):
+        m = self.model
+        m.bess_soc_pu = Param(m.BESS, initialize=lambda m, g: self.bess[g].soc_pu, within=NonNegativeReals, mutable=True)
+
+    def create_bess_variables(self):
+        m = self.model
+        def charge_bounds_rule(m,g): return (0, self.bess[g].max_charge_rate_pu)
+        def discharge_bounds_rule(m,g): return (0, self.bess[g].max_discharge_rate_pu)
+        m.p_bess_out = Var(m.BESS, bounds=discharge_bounds_rule, initialize=0)
+        m.p_bess_in = Var(m.BESS, bounds=charge_bounds_rule, initialize=0)
+        m.q_bess = Var(m.BESS, initialize=0)
+
+    def add_bess_constraints(self):
+        m = self.model
+        def net_energy(m, g):
+            batt = self.bess[g]
+            charge = m.p_bess_in[g] * batt.efficiency_charge
+            discharge = m.p_bess_out[g] / batt.efficiency_discharge
+            return charge - discharge
+        
+        def bess_soc_max_rule(m, g):
+            batt = self.bess[g]
+            return m.bess_soc_pu[g] + net_energy(m, g) <= batt.capacity_pu
+        m.BESS_SOC_Max_Constraint = Constraint(m.BESS, rule=bess_soc_max_rule)
+
+        def bess_soc_min_rule(m, g):
+            batt = self.bess[g]
+            return m.bess_soc_pu[g] + net_energy(m, g) >= 0
+        m.BESS_SOC_Min_Constraint = Constraint(m.BESS, rule=bess_soc_min_rule)
+
+        def bess_inverter_rule(m, g):
+            batt = self.bess[g]
+            s_max = batt.inverter_s_max_pu
+            if s_max is None:
+                return m.q_bess[g] == 0
+            return m.q_bess[g]**2 + (m.p_bess_out[g] - m.p_bess_in[g])**2 <= s_max**2
+        m.BESS_Inverter_Constraint = Constraint(m.BESS, rule=bess_inverter_rule)
+
+    def update_bess_params(self):
+        m = self.model
+        for g in m.BESS:
+            m.bess_soc_pu[g] = self.bess[g].soc_pu
+
+    # ------------- Bus ---------------#
+    def create_bus_block(self):
+        self.create_bus_params()
+        self.create_bus_voltage_variables()
+
+    def create_bus_params(self):
+        m = self.model
+        m.bus_v_min = Param(m.BUSES, initialize=lambda m, b: self.buses[b].v_min_pu, within=NonNegativeReals, mutable=True)
+        m.bus_v_max = Param(m.BUSES, initialize=lambda m, b: self.buses[b].v_max_pu, within=NonNegativeReals, mutable=True)
+
+    def create_bus_voltage_variables(self):
+        m = self.model
+        m.v = Var(m.BUSES, bounds=lambda m, b: (m.bus_v_min[b], m.bus_v_max[b]), initialize=1.0)
+        m.theta = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
+        # Fix slack bus angle and voltage
+        for b in self.buses.values():
+            if b.btype == BusType.SLACK:
+                m.theta[b.name].fix(0)
+                m.v[b.name].fix(1.0)
+
+    # ------------- Lines ---------------#
+    def create_line_block(self):
+        self.create_flow_variables()
+
+    def create_flow_variables(self):
+        m = self.model
+        m.p_flow_out = Var(m.LINES, domain=Reals, initialize=0)
+        m.p_flow_in = Var(m.LINES, domain=Reals, initialize=0)
+        m.q_flow_out = Var(m.LINES, domain=Reals, initialize=0)
+        m.q_flow_in = Var(m.LINES, domain=Reals, initialize=0)
+
+        # Ativa e reativa: P_ij, Q_ij, P_ji, Q_ji
+        def flow_out_rule(m, ln):
+            line = self.lines[ln]
+            i = line.from_bus.name
+            j = line.to_bus.name
+            g = self.net.g_bus[self.buses[i].id, self.buses[j].id]
+            b = self.net.b_bus[self.buses[i].id, self.buses[j].id]
+            return m.p_flow_out[ln] == (
+                m.v[i]**2 * g
+                - m.v[i] * m.v[j] * (g * cos(m.theta[i] - m.theta[j]) + b * sin(m.theta[i] - m.theta[j]))
+            )
+        m.flow_out_rule = Constraint(m.LINES, rule=flow_out_rule)
+
+        def flow_in_rule(m, ln):
+            line = self.lines[ln]
+            i = line.from_bus.name
+            j = line.to_bus.name
+            g = self.net.g_bus[self.buses[j].id, self.buses[i].id]
+            b = self.net.b_bus[self.buses[j].id, self.buses[i].id]
+            return m.p_flow_in[ln] == (
+                m.v[j]**2 * g
+                - m.v[j] * m.v[i] * (g * cos(m.theta[j] - m.theta[i]) + b * sin(m.theta[j] - m.theta[i]))
+            )
+        m.flow_in_rule = Constraint(m.LINES, rule=flow_in_rule)
+
+        def flow_out_q_rule(m, ln):
+            line = self.lines[ln]
+            i = line.from_bus.name
+            j = line.to_bus.name
+            g = self.net.g_bus[self.buses[i].id, self.buses[j].id]
+            b = self.net.b_bus[self.buses[i].id, self.buses[j].id]
+            return m.q_flow_out[ln] == (
+                m.v[i]**2 * b
+                - m.v[i] * m.v[j] * (g * sin(m.theta[i] - m.theta[j]) - b * cos(m.theta[i] - m.theta[j]))
+            )
+        m.flow_out_q_rule = Constraint(m.LINES, rule=flow_out_q_rule)
+
+        def flow_in_q_rule(m, ln):
+            line = self.lines[ln]
+            i = line.from_bus.name
+            j = line.to_bus.name
+            g = self.net.g_bus[self.buses[j].id, self.buses[i].id]
+            b = self.net.b_bus[self.buses[j].id, self.buses[i].id]
+            return m.q_flow_in[ln] == (
+                m.v[j]**2 * b
+                - m.v[j] * m.v[i] * (g * sin(m.theta[j] - m.theta[i]) - b * cos(m.theta[j] - m.theta[i]))
+            )
+        m.flow_in_q_rule = Constraint(m.LINES, rule=flow_in_q_rule)
+
+        # Limites de fluxo ativo
+        def flow_out_bounds(m, ln):
+            return inequality(-self.lines[ln].flow_max_pu, m.p_flow_out[ln], self.lines[ln].flow_max_pu)
+        m.flow_out_bounds = Constraint(m.LINES, rule=flow_out_bounds)
+
+        def flow_in_bounds(m, ln):
+            return inequality(-self.lines[ln].flow_max_pu, m.p_flow_in[ln], self.lines[ln].flow_max_pu)
+        m.flow_in_bounds = Constraint(m.LINES, rule=flow_in_bounds)
+
+    # ------------- Nodal Balance ---------------#
+    def add_nodal_balance_constraints(self):
+        m = self.model
+        def active_power_balance_rule(m, bus):
+            # 1. Geração (Sources)
+            gen_thermal = sum(m.p_thermal[g] for g in m.THERMAL_GENERATORS if self.thermal_generators[g].bus.name == bus)
+            gen_wind = sum(m.p_wind[g] for g in m.WIND_GENERATORS if self.wind_generators[g].bus.name == bus)
+            # Bateria: P_out (Descarrega) é injeção, P_in (Carrega) é retirada
+            gen_bess = sum(m.p_bess_out[g] - m.p_bess_in[g] for g in m.BESS if self.bess[g].bus.name == bus)
+            
+            # 2. Cargas e Shed (Sinks)
+            load = sum(m.load_p_pu[l] for l in m.LOADS if self.loads[l].bus.name == bus)
+            shed = sum(m.p_shed[l] for l in m.LOADS if self.loads[l].bus.name == bus)
+            
+            # 3. Fluxos nas Linhas (AMBOS representam potência SAINDO da barra para a linha)
+            # p_flow_out: Sai da barra 'from'
+            # p_flow_in: Sai da barra 'to'
+            flows_leaving_bus = sum(m.p_flow_out[ln] for ln in m.LINES if self.lines[ln].from_bus.name == bus) + \
+                                sum(m.p_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
+            
+            # Equação Fundamental: (Geração + Corte) - Carga = Tudo que sai para as linhas
+            return gen_thermal + gen_wind + gen_bess + shed - load == flows_leaving_bus
+            
+        m.active_power_balance = Constraint(m.BUSES, rule=active_power_balance_rule)
+
+        def reactive_power_balance_rule(m, bus):
+            # Geração Q
+            gen_q_thermal = sum(m.q_thermal[g] for g in m.THERMAL_GENERATORS if self.thermal_generators[g].bus.name == bus)
+            gen_q_wind = sum(m.q_wind[g] for g in m.WIND_GENERATORS if self.wind_generators[g].bus.name == bus)
+            gen_q_bess = sum(m.q_bess[g] for g in m.BESS if self.bess[g].bus.name == bus)
+
+            # Carga Q
+            load_q = sum(m.load_q_pu[l] for l in m.LOADS if self.loads[l].bus.name == bus)
+
+            # Fluxos Q Saindo da barra
+            flows_q_leaving = sum(m.q_flow_out[ln] for ln in m.LINES if self.lines[ln].from_bus.name == bus) + \
+                              sum(m.q_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
+            
+            return gen_q_thermal + gen_q_wind + gen_q_bess - load_q == flows_q_leaving
+            
+        m.reactive_power_balance = Constraint(m.BUSES, rule=reactive_power_balance_rule)

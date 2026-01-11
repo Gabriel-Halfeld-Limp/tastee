@@ -22,12 +22,12 @@ class Bus(AbstractNode):
     """
     
     # --- Atributos Principais de Entrada ---
-    btype: BusType = BusType.PQ
+    btype:  BusType = BusType.PQ
     v_pu: float = 1.0        # Tensão (magnitude) em p.u.
     theta_deg: float = 0.0   # Ângulo: Armazenamos em 'graus' (degrees) por ser mais intuitivo.
     q_shunt_mvar: float = 0.0   # Potência reativa do shunt em MVAr (a 1.0 pu V)
-    # v_min_pu: float = 0.95 
-    # v_max_pu: float = 1.05
+    v_min_pu: float = 0.95 
+    v_max_pu: float = 1.05
 
     loads:              List["Load"]             = field(default_factory=list, repr=False)
     generators:         List["Generator"]        = field(default_factory=list, repr=False)
@@ -67,7 +67,7 @@ class Bus(AbstractNode):
     def q_pu(self) -> float:
         """Net reactive power injection (pu)"""
         return sum(g.q_pu for g in self.generators) - sum(l.q_pu for l in self.loads) 
-    
+
     def add_generator(self, generator: 'Generator'):
         "Add a generator to this bus"
         if generator not in self.generators:
@@ -97,10 +97,6 @@ class Bus(AbstractNode):
                         f"p_net={self.p_pu:.3f} pu, q_net={self.q_pu:.3f} pu, "
                         f"y_sh={self.shunt_pu:.2f} pu, "
                         f"gens={len(self.generators)}, loads={len(self.loads)})")
-
-
-
-
 
 ##################################################### TESTE #########################################################
 if __name__ == "__main__":

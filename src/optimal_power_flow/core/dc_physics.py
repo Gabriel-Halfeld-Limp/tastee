@@ -16,13 +16,15 @@ class OPFDC(OPFBaseModel):
         """
         Constructs the Pyomo model with DC power flow variables and constraints.
         """
+        self._build_base_model()
         self.create_thermal_block()
         self.create_wind_block()
         self.create_bess_block()
         self.create_load_block()
         self.create_bus_block()
         self.create_line_block()
-    
+        self.add_nodal_balance_constraints()
+
     def update_model(self):
         """
         Atualiza o modelo Pyomo com os novos parâmetros.
@@ -115,7 +117,7 @@ class OPFDC(OPFBaseModel):
         Cria todos os componentes relacionados à bateria (parâmetros, variáveis, restrições).
         """
         self.create_bess_params()
-        self.create_bess_variables()  # bess part
+        self.create_bess_variables()
         self.add_bess_constraints()
 
     def create_bess_params(self):
@@ -130,20 +132,31 @@ class OPFDC(OPFBaseModel):
         Create battery (BESS) operation variables.
         """
         m = self.model
-        m.p_bess_out = Var(m.BESS, bounds=(0, None), initialize=0)
-        m.p_bess_in = Var(m.BESS, bounds=(0, None), initialize=0)
+        def charge_bounds_rule(m,g): return (0, self.bess[g].dc_max_charge_rate_pu)
+        def discharge_bounds_rule(m,g): return (0, self.bess[g].dc_max_discharge_rate_pu)
+        m.p_bess_out = Var(m.BESS, bounds=discharge_bounds_rule, initialize=0)
+        m.p_bess_in = Var(m.BESS, bounds=charge_bounds_rule, initialize=0)
 
     def add_bess_constraints(self):
         """
         Adiciona restrições operacionais para baterias.
         """
         m = self.model
-        def bess_soc_rule(m, g):
-            return m.p_bess_in[g] + self.bess[g].soc_pu - m.p_bess_out[g] <= self.bess[g].capacity_pu
-        m.BESS_SOC_Constraint = Constraint(m.BESS, rule=bess_soc_rule)
-        def bess_discharge_rule(m, g):
-            return self.bess[g].soc_pu - m.p_bess_out[g] >= 0
-        m.BESS_Discharge_Constraint = Constraint(m.BESS, rule=bess_discharge_rule)
+
+        def net_energy(m, g):
+            batt = self.bess[g]
+            charge = m.p_bess_in[g] * batt.efficiency_charge
+            discharge = m.p_bess_out[g] / batt.efficiency_discharge
+            return charge - discharge
+        
+        def bess_soc_max_rule(m, g):
+            batt = self.bess[g]
+            return m.bess_soc_pu[g] + net_energy(m, g) <= batt.capacity_pu
+        m.BESS_SOC_Max_Constraint = Constraint(m.BESS, rule=bess_soc_max_rule)
+
+        def bess_soc_min_rule(m, g):
+            return m.bess_soc_pu[g] + net_energy(m, g) >= 0
+        m.BESS_SOC_Min_Constraint = Constraint(m.BESS, rule=bess_soc_min_rule)
 
     def update_bess_params(self):
         """
@@ -159,9 +172,7 @@ class OPFDC(OPFBaseModel):
         """
         self.create_bus_params()
         self.create_bus_angle_variables()
-        self.add_dc_flow_constraints()
-        self.add_nodal_balance_constraints()
-    
+
     def create_bus_params(self):
         """
         Create bus-related parameters if needed.
@@ -178,8 +189,8 @@ class OPFDC(OPFBaseModel):
         # Fix slack bus angle to 0
         for b in self.buses.values():
             if b.btype == BusType.SLACK:
-                m.theta.setlb(b.name, 0)
-                m.theta.setub(b.name, 0)
+                m.theta[b.name].setlb(0)
+                m.theta[b.name].setub(0)
 
     def add_nodal_balance_constraints(self):
         """
@@ -215,7 +226,7 @@ class OPFDC(OPFBaseModel):
         Create all line-related components (variables, constraints).
         """
         self.create_flow_variables()
-        self.add_dc_flow_constraints()
+        self.add_dc_flow_constraints()  # Só aqui
 
     def create_flow_variables(self):
         """
