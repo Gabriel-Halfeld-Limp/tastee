@@ -6,8 +6,7 @@ class OPFBaseModel:
     Pyomo base model for Optimal Power Flow (OPF) problems.
     This class sets up the fundamental structure for OPF models, including:
     - Initializing the Pyomo model.
-    - Defining sets for buses, generators, branches and temporal periods.
-    - Creating global parameters for network data.
+    - Defining sets for buses, generators, branches
     """
 
     def __init__(self, network: Network):
