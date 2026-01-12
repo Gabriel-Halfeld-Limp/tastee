@@ -57,6 +57,8 @@ class OPFAC(OPFBaseModel):
         m = self.model
         m.p_shed = Var(m.LOADS, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
         m.Shed_Max_Constraint = Constraint(m.LOADS, rule=lambda m, l: m.p_shed[l] <= m.load_p_pu[l])
+        
+        m.q_shed = Var(m.LOADS, domain=Reals, initialize=0) #Infinity bounds for convergence
 
     def update_load_params(self):
         m = self.model
@@ -175,56 +177,97 @@ class OPFAC(OPFBaseModel):
         m.q_flow_out = Var(m.LINES, domain=Reals, initialize=0)
         m.q_flow_in = Var(m.LINES, domain=Reals, initialize=0)
 
-        # Ativa e reativa: P_ij, Q_ij, P_ji, Q_ji
+        # Helper para índices
+        def get_idx(bus_id): return self.net.bus_idx[bus_id]
+
+        # --- FLUXO ATIVO (P) ---
+        # P geralmente ignora shunt (G_shunt ≈ 0), então Y_ij (série) basta.
+        
         def flow_out_rule(m, ln):
             line = self.lines[ln]
+            i_idx = get_idx(line.from_bus.id)
+            j_idx = get_idx(line.to_bus.id)
+            
+            # Recupera a parte série da Ybus (lembrando que Y_ij = -y_serie)
+            G_ij = self.net.g_bus[i_idx, j_idx]
+            B_ij = self.net.b_bus[i_idx, j_idx]
+            
             i = line.from_bus.name
             j = line.to_bus.name
-            g = self.net.g_bus[self.buses[i].id, self.buses[j].id]
-            b = self.net.b_bus[self.buses[i].id, self.buses[j].id]
+            theta_ij = m.theta[i] - m.theta[j]
+            
+            # Equação Padrão usando Elementos da Ybus (-G_ij = g_linha)
             return m.p_flow_out[ln] == (
-                m.v[i]**2 * g
-                - m.v[i] * m.v[j] * (g * cos(m.theta[i] - m.theta[j]) + b * sin(m.theta[i] - m.theta[j]))
+                -G_ij * m.v[i]**2 
+                + m.v[i] * m.v[j] * (G_ij * cos(theta_ij) + B_ij * sin(theta_ij))
             )
         m.flow_out_rule = Constraint(m.LINES, rule=flow_out_rule)
 
         def flow_in_rule(m, ln):
             line = self.lines[ln]
+            i_idx = get_idx(line.from_bus.id)
+            j_idx = get_idx(line.to_bus.id)
+            
+            G_ji = self.net.g_bus[j_idx, i_idx]
+            B_ji = self.net.b_bus[j_idx, i_idx]
+            
             i = line.from_bus.name
             j = line.to_bus.name
-            g = self.net.g_bus[self.buses[j].id, self.buses[i].id]
-            b = self.net.b_bus[self.buses[j].id, self.buses[i].id]
+            theta_ji = m.theta[j] - m.theta[i]
+            
             return m.p_flow_in[ln] == (
-                m.v[j]**2 * g
-                - m.v[j] * m.v[i] * (g * cos(m.theta[j] - m.theta[i]) + b * sin(m.theta[j] - m.theta[i]))
+                -G_ji * m.v[j]**2 
+                + m.v[j] * m.v[i] * (G_ji * cos(theta_ji) + B_ji * sin(theta_ji))
             )
         m.flow_in_rule = Constraint(m.LINES, rule=flow_in_rule)
 
+        # --- FLUXO REATIVO (Q) ---
+        # AQUI É O PULO DO GATO: Precisamos somar o shunt localmente!
+        
         def flow_out_q_rule(m, ln):
             line = self.lines[ln]
+            i_idx = get_idx(line.from_bus.id)
+            j_idx = get_idx(line.to_bus.id)
+            
+            G_ij = self.net.g_bus[i_idx, j_idx]
+            B_ij = self.net.b_bus[i_idx, j_idx]
+            
+            # Recupera o shunt desta linha específica (não está em B_ij)
+            b_sh = line.shunt_half_pu 
+            
             i = line.from_bus.name
             j = line.to_bus.name
-            g = self.net.g_bus[self.buses[i].id, self.buses[j].id]
-            b = self.net.b_bus[self.buses[i].id, self.buses[j].id]
+            theta_ij = m.theta[i] - m.theta[j]
+            
+            # Q_out = Q_serie + Q_shunt
+            # Q_serie usa B_ij (que é -b_serie). Q_shunt usa -b_sh (injeção)
+            # A fórmula correta combinando Ybus e Shunt explícito é:
             return m.q_flow_out[ln] == (
-                m.v[i]**2 * b
-                - m.v[i] * m.v[j] * (g * sin(m.theta[i] - m.theta[j]) - b * cos(m.theta[i] - m.theta[j]))
+                (B_ij - b_sh) * m.v[i]**2 
+                + m.v[i] * m.v[j] * (G_ij * sin(theta_ij) - B_ij * cos(theta_ij))
             )
         m.flow_out_q_rule = Constraint(m.LINES, rule=flow_out_q_rule)
 
         def flow_in_q_rule(m, ln):
             line = self.lines[ln]
+            i_idx = get_idx(line.from_bus.id)
+            j_idx = get_idx(line.to_bus.id)
+            
+            G_ji = self.net.g_bus[j_idx, i_idx]
+            B_ji = self.net.b_bus[j_idx, i_idx]
+            b_sh = line.shunt_half_pu
+            
             i = line.from_bus.name
             j = line.to_bus.name
-            g = self.net.g_bus[self.buses[j].id, self.buses[i].id]
-            b = self.net.b_bus[self.buses[j].id, self.buses[i].id]
+            theta_ji = m.theta[j] - m.theta[i]
+            
             return m.q_flow_in[ln] == (
-                m.v[j]**2 * b
-                - m.v[j] * m.v[i] * (g * sin(m.theta[j] - m.theta[i]) - b * cos(m.theta[j] - m.theta[i]))
+                (B_ji - b_sh) * m.v[j]**2 
+                + m.v[j] * m.v[i] * (G_ji * sin(theta_ji) - B_ji * cos(theta_ji))
             )
         m.flow_in_q_rule = Constraint(m.LINES, rule=flow_in_q_rule)
 
-        # Limites de fluxo ativo
+        # Bounds
         def flow_out_bounds(m, ln):
             return inequality(-self.lines[ln].flow_max_pu, m.p_flow_out[ln], self.lines[ln].flow_max_pu)
         m.flow_out_bounds = Constraint(m.LINES, rule=flow_out_bounds)
@@ -254,7 +297,7 @@ class OPFAC(OPFBaseModel):
                                 sum(m.p_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
             
             # Equação Fundamental: (Geração + Corte) - Carga = Tudo que sai para as linhas
-            return gen_thermal + gen_wind + gen_bess + shed - load == flows_leaving_bus
+            return gen_thermal + gen_wind + gen_bess + shed - flows_leaving_bus == load
             
         m.active_power_balance = Constraint(m.BUSES, rule=active_power_balance_rule)
 
@@ -266,11 +309,43 @@ class OPFAC(OPFBaseModel):
 
             # Carga Q
             load_q = sum(m.load_q_pu[l] for l in m.LOADS if self.loads[l].bus.name == bus)
+            shed_q = sum(m.q_shed[l] for l in m.LOADS if self.loads[l].bus.name == bus)
 
             # Fluxos Q Saindo da barra
             flows_q_leaving = sum(m.q_flow_out[ln] for ln in m.LINES if self.lines[ln].from_bus.name == bus) + \
                               sum(m.q_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
             
-            return gen_q_thermal + gen_q_wind + gen_q_bess - load_q == flows_q_leaving
+            return gen_q_thermal + gen_q_wind + gen_q_bess + shed_q - flows_q_leaving ==  load_q
             
         m.reactive_power_balance = Constraint(m.BUSES, rule=reactive_power_balance_rule)
+    
+    # ------------- Model Update ---------------#
+    def update_network_with_results(self):
+        """
+        Update the network object with results from the Pyomo model.
+        """
+        m = self.model
+        for g in m.THERMAL_GENERATORS:
+            self.thermal_generators[g].p_pu = value(m.p_thermal[g])
+            self.thermal_generators[g].q_pu = value(m.q_thermal[g])
+
+        for g in m.WIND_GENERATORS:
+            self.wind_generators[g].p_pu = value(m.p_wind[g])
+            self.wind_generators[g].q_pu = value(m.q_wind[g])
+
+        for g in m.BESS:
+            self.bess[g].p_pu = value(m.p_bess_out[g]) - value(m.p_bess_in[g])
+            self.bess[g].q_pu = value(m.q_bess[g])
+        
+        for l in m.LOADS:
+            self.loads[l].p_shed_pu = value(m.p_shed[l])
+            self.loads[l].q_shed_pu = value(m.q_shed[l])
+        
+        for b in m.BUSES:
+            self.buses[b].theta_rad = value(m.theta[b])
+        
+        for l in m.LINES:
+            self.lines[l].p_flow_out_pu = value(m.p_flow_out[l])
+            self.lines[l].p_flow_in_pu = value(m.p_flow_in[l])
+            self.lines[l].q_flow_out_pu = value(m.q_flow_out[l])
+            self.lines[l].q_flow_in_pu = value(m.q_flow_in[l])

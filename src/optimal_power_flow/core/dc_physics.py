@@ -244,3 +244,28 @@ class OPFDC(OPFBaseModel):
             line = self.lines[l]
             return m.flow[l] == (m.theta[line.from_bus.name] - m.theta[line.to_bus.name]) / line.x_pu
         m.DCFlowConstraint = Constraint(m.LINES, rule=dc_flow_rule)
+    
+    # ------------- Model Update ---------------#
+    def update_network_with_results(self):
+        """
+        Update the network object with results from the Pyomo model.
+        """
+        m = self.model
+        for g in m.THERMAL_GENERATORS:
+            self.thermal_generators[g].p_pu = value(m.p_thermal[g])
+        
+        for g in m.WIND_GENERATORS:
+            self.wind_generators[g].p_pu = value(m.p_wind[g])
+
+        for g in m.BESS:
+            self.bess[g].p_pu = value(m.p_bess_out[g]) - value(m.p_bess_in[g])
+        
+        for l in m.LOADS:
+            self.loads[l].p_shed_pu = value(m.p_shed[l])
+        
+        for b in m.BUSES:
+            self.buses[b].theta_rad = value(m.theta[b])
+        
+        for l in m.LINES:
+            self.lines[l].p_flow_out_pu = value(m.flow[l])
+            self.lines[l].p_flow_in_pu  = -value(m.flow[l])
