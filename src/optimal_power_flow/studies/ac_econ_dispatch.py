@@ -50,7 +50,7 @@ class ACEconDispatch(OPFAC):
         """
         solver = SolverFactory(solver_name)
         results = solver.solve(self.model, tee=verbose, **kwargs)
-        return results
+        return self._extract_results(converged=(results.solver.termination_condition == 'optimal'))
     
     def _extract_results(self, converged):
         """
@@ -167,41 +167,30 @@ class ACEconDispatch(OPFAC):
         })
 
         return {
-            "Resumo": resumo, "Thermal_Generation": df_thermal, "Wind_Generation": df_wind,
-            "Battery": df_bess, "Load_Shed": df_shed, "Bus": df_bus, "Line": df_line
+            "Resumo": resumo, 
+            "Thermal_Generation": df_thermal, 
+            "Wind_Generation": df_wind,
+            "Battery": df_bess, 
+            "Load_Shed": df_shed, 
+            "Bus": df_bus, "Line": df_line,
+            "Line": df_line
         }
 
 if __name__ == "__main__":
     import pandas as pd
-    from power import Network
-    # Assuming B3 is importable. If not, use the manual creation block from before.
-    from power.systems.b3 import B3
-    from power.systems.ieee14 import IEEE14
+    from power.systems import *
 
-    # Pandas Configuration for clean terminal output
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
     pd.set_option('display.float_format', '{:.4f}'.format)
 
     print(">>> 1. Creating System (AC Mode)...")
-    # Instantiate the network
-    net = IEEE14()
+    net = B6L8Charged()
 
-    # 2. Instantiate and Solve
     print("\n>>> 2. Running AC Economic Dispatch (ACEconDispatch)...")
-    
-    # Create the study object
     study = ACEconDispatch(net)
     try:
-        # Calls the solve wrapper we defined earlier
-        # Ensure extracted_results is returned by this method
-        results_raw = study.solve(solver_name='ipopt', verbose=True)
-        
-        # Extract results into DataFrames
-        # Checks solver status to determine if converged
-        is_optimal = (results_raw.solver.termination_condition == 'optimal')
-        results = study._extract_results(converged=is_optimal)
-        
+        results = study.solve(solver_name='ipopt', verbose=True)
     except Exception as e:
         print(f"\n❌ Solver Error: {e}")
         print("Ensure 'ipopt' is installed and in your system PATH.")
@@ -213,7 +202,7 @@ if __name__ == "__main__":
     print(f"FINAL REPORT - Status: {status_str}")
     print("="*100)
 
-    # Logic print order matching the DC version
+    # Print summary tables
     tables = [
         ("SYSTEM SUMMARY", "Resumo"),
         ("BUSES (Voltage, Angle, LMPs)", "Bus"),
@@ -226,30 +215,31 @@ if __name__ == "__main__":
 
     for title, key in tables:
         df = results.get(key)
-        # Check if df is valid and not empty
         if df is not None and isinstance(df, pd.DataFrame) and not df.empty:
             print(f"\n--- {title} ---")
-            # Using to_string with float formatter for clean alignment
             print(df.to_string(float_format=lambda x: "{:.4f}".format(x) if isinstance(x, (float, int)) else str(x)))
         else:
             print(f"\n--- {title} ---\n(No data)")
 
     print("\n" + "="*100)
-    
-    # Quick Health Check for AC Voltage
+
+    # Checagem dos limites de fluxo ativo
+    print("\n--- LINE FLOW LIMIT CHECK ---")
+    m = study.model
+    for ln in m.LINES:
+        p_out = float(value(m.p_flow_out[ln]))
+        p_in = float(value(m.p_flow_in[ln]))
+        p_max = float(study.lines[ln].flow_max_pu)
+        status_out = "OK" if abs(p_out) <= p_max + 1e-5 else "VIOLATED"
+        status_in = "OK" if abs(p_in) <= p_max + 1e-5 else "VIOLATED"
+        print(f"Line {ln}: p_flow_out = {p_out:.4f} | p_flow_in = {p_in:.4f} | max = {p_max:.4f} | OUT: {status_out} | IN: {status_in}")
+
+    # Checagem rápida das tensões
     if "Bus" in results and not results["Bus"].empty:
         v_min = results["Bus"]["V_pu"].min()
         v_max = results["Bus"]["V_pu"].max()
-        print(f"Voltage Profile: Min {v_min:.4f} pu | Max {v_max:.4f} pu")
-        
-        if v_min < 0.94 or v_max > 1.05:
-            print("⚠️  WARNING: Voltages are outside the typical 0.94-1.05 range!")
+        print(f"\nVoltage Profile: Min {v_min:.4f} pu | Max {v_max:.4f} pu")
+        if v_min < 0.94 or v_max > 1.06:
+            print("⚠️  WARNING: Voltages are outside the typical 0.94-1.06 range!")
         else:
             print("✅ Voltages are within healthy limits.")
-
-    #saving .lp
-    # Salva todo o modelo (variáveis, restrições e objetivo) em um txt
-    with open("modelo_debug.txt", "w") as f:
-        study.model.pprint(ostream=f)
-    
-

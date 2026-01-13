@@ -39,8 +39,8 @@ class B3EOLCharged(Network):
         """
         Cria os geradores do sistema.
         """
-        WindGenerator(id=1, bus=self.buses[0], p_max_mw=30)
-        ThermalGenerator(id=2, bus=self.buses[1], cost_b_mw=20, p_max_mw=30)
+        WindGenerator(id=1, bus=self.buses[0], p_max_mw=30, q_max_mvar=15)
+        ThermalGenerator(id=2, bus=self.buses[1], cost_b_mw=20, p_max_mw=30, q_max_mvar=15)
 
     def _create_loads(self):
         """

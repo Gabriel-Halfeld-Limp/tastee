@@ -65,14 +65,12 @@ class OPFIterativeLoss(OPFDC):
 
         return new_bus_losses, total_loss
 
-    def solve(self, solver_name='ipopt', max_iter=20, tol=1e-4, verbose=True):
+    def solve(self, solver_name='ipopt', max_iter=20, tol=1e-4, verbose=False):
         m = self.model
         opt = SolverFactory(solver_name)
         
         prev_total_loss = -1.0
         converged = False
-        
-        print(f"--- Iniciando DC-OPF com Perdas (Max Iter: {max_iter}) ---")
 
         for i in range(1, max_iter + 1):
             # Resolve
@@ -265,7 +263,7 @@ class OPFIterativeLoss(OPFDC):
             "Load_Shed": df_shed,
             "Bus": df_bus,
             "Line": df_line,
-            "Objective_Value": value(m.obj)
+            "Total_Cost": value(m.obj)
         }
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ class OPFAC(OPFBaseModel):
 
     def create_load_shed_variables(self):
         m = self.model
-        m.p_shed = Var(m.LOADS, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
+        m.p_shed = Var(m.LOADS, within=NonNegativeReals, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
         m.Shed_Max_Constraint = Constraint(m.LOADS, rule=lambda m, l: m.p_shed[l] <= m.load_p_pu[l])
         
         m.q_shed = Var(m.LOADS, domain=Reals, initialize=0) #Infinity bounds for convergence
@@ -164,7 +164,6 @@ class OPFAC(OPFBaseModel):
         for b in self.buses.values():
             if b.btype == BusType.SLACK:
                 m.theta[b.name].fix(0)
-                m.v[b.name].fix(1.0)
 
     # ------------- Lines ---------------#
     def create_line_block(self):
