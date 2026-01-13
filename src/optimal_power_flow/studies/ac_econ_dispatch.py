@@ -136,8 +136,8 @@ class ACEconDispatch(OPFAC):
         for b in m.BUSES:
             bus_data.append({
                 "Bus": b,
-                "V_pu": v(m.v[b]),
-                "Angle_deg": np.rad2deg(v(m.theta[b])),
+                "V_pu": v(m.v_pu[b]),
+                "Angle_deg": np.rad2deg(v(m.theta_rad[b])),
                 "LMP_P": get_dual(m.active_power_balance[b]),
                 "LMP_Q": get_dual(m.reactive_power_balance[b])
             })

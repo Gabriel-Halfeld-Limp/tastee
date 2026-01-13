@@ -158,12 +158,12 @@ class OPFAC(OPFBaseModel):
 
     def create_bus_voltage_variables(self):
         m = self.model
-        m.v = Var(m.BUSES, bounds=lambda m, b: (m.bus_v_min[b], m.bus_v_max[b]), initialize=1.0)
-        m.theta = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
+        m.v_pu = Var(m.BUSES, bounds=lambda m, b: (m.bus_v_min[b], m.bus_v_max[b]), initialize=1.0)
+        m.theta_rad = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
         # Fix slack bus angle and voltage
         for b in self.buses.values():
             if b.btype == BusType.SLACK:
-                m.theta[b.name].fix(0)
+                m.theta_rad[b.name].fix(0)
 
     # ------------- Lines ---------------#
     def create_line_block(self):
@@ -193,12 +193,12 @@ class OPFAC(OPFBaseModel):
             
             i = line.from_bus.name
             j = line.to_bus.name
-            theta_ij = m.theta[i] - m.theta[j]
+            theta_ij = m.theta_rad[i] - m.theta_rad[j]
             
             # Equação Padrão usando Elementos da Ybus (-G_ij = g_linha)
             return m.p_flow_out[ln] == (
-                -G_ij * m.v[i]**2 
-                + m.v[i] * m.v[j] * (G_ij * cos(theta_ij) + B_ij * sin(theta_ij))
+                -G_ij * m.v_pu[i]**2 
+                + m.v_pu[i] * m.v_pu[j] * (G_ij * cos(theta_ij) + B_ij * sin(theta_ij))
             )
         m.flow_out_rule = Constraint(m.LINES, rule=flow_out_rule)
 
@@ -212,11 +212,11 @@ class OPFAC(OPFBaseModel):
             
             i = line.from_bus.name
             j = line.to_bus.name
-            theta_ji = m.theta[j] - m.theta[i]
+            theta_ji = m.theta_rad[j] - m.theta_rad[i]
             
             return m.p_flow_in[ln] == (
-                -G_ji * m.v[j]**2 
-                + m.v[j] * m.v[i] * (G_ji * cos(theta_ji) + B_ji * sin(theta_ji))
+                -G_ji * m.v_pu[j]**2 
+                + m.v_pu[j] * m.v_pu[i] * (G_ji * cos(theta_ji) + B_ji * sin(theta_ji))
             )
         m.flow_in_rule = Constraint(m.LINES, rule=flow_in_rule)
 
@@ -236,14 +236,14 @@ class OPFAC(OPFBaseModel):
             
             i = line.from_bus.name
             j = line.to_bus.name
-            theta_ij = m.theta[i] - m.theta[j]
+            theta_ij = m.theta_rad[i] - m.theta_rad[j]
             
             # Q_out = Q_serie + Q_shunt
             # Q_serie usa B_ij (que é -b_serie). Q_shunt usa -b_sh (injeção)
             # A fórmula correta combinando Ybus e Shunt explícito é:
             return m.q_flow_out[ln] == (
-                (B_ij - b_sh) * m.v[i]**2 
-                + m.v[i] * m.v[j] * (G_ij * sin(theta_ij) - B_ij * cos(theta_ij))
+                (B_ij - b_sh) * m.v_pu[i]**2 
+                + m.v_pu[i] * m.v_pu[j] * (G_ij * sin(theta_ij) - B_ij * cos(theta_ij))
             )
         m.flow_out_q_rule = Constraint(m.LINES, rule=flow_out_q_rule)
 
@@ -258,11 +258,11 @@ class OPFAC(OPFBaseModel):
             
             i = line.from_bus.name
             j = line.to_bus.name
-            theta_ji = m.theta[j] - m.theta[i]
+            theta_ji = m.theta_rad[j] - m.theta_rad[i]
             
             return m.q_flow_in[ln] == (
-                (B_ji - b_sh) * m.v[j]**2 
-                + m.v[j] * m.v[i] * (G_ji * sin(theta_ji) - B_ji * cos(theta_ji))
+                (B_ji - b_sh) * m.v_pu[j]**2 
+                + m.v_pu[j] * m.v_pu[i] * (G_ji * sin(theta_ji) - B_ji * cos(theta_ji))
             )
         m.flow_in_q_rule = Constraint(m.LINES, rule=flow_in_q_rule)
 
@@ -341,7 +341,8 @@ class OPFAC(OPFBaseModel):
             self.loads[l].q_shed_pu = value(m.q_shed[l])
         
         for b in m.BUSES:
-            self.buses[b].theta_rad = value(m.theta[b])
+            self.buses[b].theta_rad = value(m.theta_rad[b])
+            self.buses[b].v_pu = value(m.v_pu[b])
         
         for l in m.LINES:
             self.lines[l].p_flow_out_pu = value(m.p_flow_out[l])

@@ -178,8 +178,8 @@ class ACMinDeviation(OPFAC):
         for b in m.BUSES:
             bus_data.append({
                 "Bus": b,
-                "V_pu": v(m.v[b]),
-                "Angle_deg": np.degrees(v(m.theta[b])),
+                "V_pu": v(m.v_pu[b]),
+                "Angle_deg": np.degrees(v(m.theta_rad[b])),
             })
         df_bus = pd.DataFrame(bus_data)
 
