@@ -18,6 +18,7 @@ class OPFBaseModel:
         self.generators         = {g.name: g for g in self.net.generators}
         self.thermal_generators = {g.name: g for g in self.net.thermal_generators}
         self.wind_generators    = {g.name: g for g in self.net.wind_generators}
+        self.solar_generators   = {g.name: g for g in self.net.solar_generators}
         self.bess               = {g.name: g for g in self.net.batteries}
         self.hydro_generators   = {g.name: g for g in self.net.hydro_generators}
 
@@ -51,6 +52,8 @@ class OPFBaseModel:
         model.GENERATORS         = Set(initialize=self.generators.keys())
         model.THERMAL_GENERATORS = Set(initialize=self.thermal_generators.keys(), within=model.GENERATORS)
         model.WIND_GENERATORS    = Set(initialize=self.wind_generators.keys(), within=model.GENERATORS)
+        model.SOLAR_GENERATORS   = Set(initialize=self.solar_generators.keys(), within=model.GENERATORS)
         model.HYDRO_GENERATORS   = Set(initialize=self.hydro_generators.keys(), within=model.GENERATORS)
+        
         model.BESS               = Set(initialize=self.bess.keys(), within=model.GENERATORS)
         model.LOADS              = Set(initialize=self.loads.keys())

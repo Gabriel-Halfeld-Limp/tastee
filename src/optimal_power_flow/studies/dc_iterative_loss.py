@@ -40,7 +40,7 @@ class OPFIterativeLoss(OPFDC):
 
     def _calculate_current_losses(self):
         """
-        Calcula as perdas baseadas nos ângulos (theta) da solução ATUAL.
+        Calcula as perdas baseadas nos ângulos (theta_rad) da solução ATUAL.
         """
         m = self.model
         new_bus_losses = {b: 0.0 for b in m.BUSES}
@@ -54,8 +54,8 @@ class OPFIterativeLoss(OPFDC):
             if denom == 0: continue
             
             g_series = r / denom
-            theta_from = value(m.theta[line.from_bus.name])
-            theta_to = value(m.theta[line.to_bus.name])
+            theta_from = value(m.theta_rad[line.from_bus.name])
+            theta_to = value(m.theta_rad[line.to_bus.name])
             
             p_loss = g_series * (theta_from - theta_to)**2
             
@@ -204,7 +204,7 @@ class OPFIterativeLoss(OPFDC):
             
             bus_data.append({
                 "Bus": b,
-                "Theta_deg": np.rad2deg(v(m.theta[b])),
+                "Theta_deg": np.rad2deg(v(m.theta_rad[b])),
                 "LMP": lmp, 
                 "Loss_Allocated_MW": v(m.bus_loss_pu[b]) * sb
             })
@@ -221,7 +221,7 @@ class OPFIterativeLoss(OPFDC):
             x = line_obj.x_pu
             denom = r**2 + x**2
             g_series = r / denom if denom > 0 else 0
-            theta_diff = v(m.theta[line_obj.from_bus.name]) - v(m.theta[line_obj.to_bus.name])
+            theta_diff = v(m.theta_rad[line_obj.from_bus.name]) - v(m.theta_rad[line_obj.to_bus.name])
             loss_val = g_series * (theta_diff**2) * sb
 
             # Loading

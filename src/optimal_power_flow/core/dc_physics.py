@@ -182,15 +182,15 @@ class OPFDC(OPFBaseModel):
 
     def create_bus_angle_variables(self):
         """
-        Create bus angle (theta) variables for DC-OPF.
+        Create bus angle (theta_rad) variables for DC-OPF.
         """
         m = self.model
-        m.theta = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
+        m.theta_rad = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
         # Fix slack bus angle to 0
         for b in self.buses.values():
             if b.btype == BusType.SLACK:
-                m.theta[b.name].setlb(0)
-                m.theta[b.name].setub(0)
+                m.theta_rad[b.name].setlb(0)
+                m.theta_rad[b.name].setub(0)
 
     def add_nodal_balance_constraints(self):
         """
@@ -242,7 +242,7 @@ class OPFDC(OPFBaseModel):
         m = self.model
         def dc_flow_rule(m, l):
             line = self.lines[l]
-            return m.flow[l] == (m.theta[line.from_bus.name] - m.theta[line.to_bus.name]) / line.x_pu
+            return m.flow[l] == (m.theta_rad[line.from_bus.name] - m.theta_rad[line.to_bus.name]) / line.x_pu
         m.DCFlowConstraint = Constraint(m.LINES, rule=dc_flow_rule)
     
     # ------------- Model Update ---------------#
@@ -264,7 +264,7 @@ class OPFDC(OPFBaseModel):
             self.loads[l].p_shed_pu = value(m.p_shed[l])
         
         for b in m.BUSES:
-            self.buses[b].theta_rad = value(m.theta[b])
+            self.buses[b].theta_rad = value(m.theta_rad[b])
         
         for l in m.LINES:
             self.lines[l].p_flow_out_pu = value(m.flow[l])
