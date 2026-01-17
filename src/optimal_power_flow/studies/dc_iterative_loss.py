@@ -25,7 +25,7 @@ class OPFIterativeLoss(OPFDC):
         
         # Custo Geração Térmica
         cost_thermal = sum(m.p_thermal[g] * self.thermal_generators[g].cost_b_pu 
-                           for g in m.THERMAL_GENERATORS)
+                            for g in m.THERMAL_GENERATORS)
         
         # Custo de Déficit (Shedding)
         cost_shed = sum(m.p_shed[l] * self.loads[l].cost_shed_pu 
