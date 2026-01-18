@@ -18,13 +18,19 @@ class OPFAC(OPFBaseModel):
         Constructs the Pyomo model with AC power flow variables and constraints.
         """
         self._build_base_model() # Set creation
-        self.create_bus_block()
-        self.create_thermal_block()
-        self.create_wind_block()
-        self.create_bess_block()
-        self.create_load_block()
-        self.create_line_block()
-        self.add_nodal_balance_constraints()
+        self.build_physics_on_container(self.model)
+
+    def build_physics_on_container(self, container):
+        """
+        Constructs the Pyomo within the given container for further multiple scenarios or time periods Blocks.
+        """
+        self.create_bus_block(container)
+        self.create_thermal_block(container)
+        self.create_wind_block(container)
+        self.create_bess_block(container)
+        self.create_load_block(container)
+        self.create_line_block(container)
+        self.add_nodal_balance_constraints(container)
 
     def update_model(self):
         """
@@ -33,57 +39,62 @@ class OPFAC(OPFBaseModel):
         self.update_load_params()
         self.update_wind_params()
         self.update_bess_params()
+    
+    @property
+    def sets(self):
+        """Returns base sets along with AC-specific sets."""
+        return self.model
 
     # ------------- Thermal Generator ---------------#
-    def create_thermal_block(self):
-        self.create_thermal_variables()
+    def create_thermal_block(self, model):
+        self.create_thermal_variables(model)
 
-    def create_thermal_variables(self):
-        m = self.model
+    def create_thermal_variables(self, model):
+        m = model
         m.p_thermal = Var(m.THERMAL_GENERATORS, bounds=lambda m, g: (self.thermal_generators[g].p_min_pu, self.thermal_generators[g].p_max_pu), initialize=0)
         m.q_thermal = Var(m.THERMAL_GENERATORS, bounds=lambda m, g: (self.thermal_generators[g].q_min_pu, self.thermal_generators[g].q_max_pu), initialize=0)
 
     # ------------- Load ---------------#
-    def create_load_block(self):
-        self.create_load_params()
-        self.create_load_shed_variables()
+    def create_load_block(self, model):
+        self.create_load_params(model)
+        self.create_load_shed_variables(model)
 
-    def create_load_params(self):
-        m = self.model
+    def create_load_params(self, model):
+        m = model
         m.load_p_pu = Param(m.LOADS, initialize=lambda m, l: self.loads[l].p_pu, within=NonNegativeReals, mutable=True)
         m.load_q_pu = Param(m.LOADS, initialize=lambda m, l: getattr(self.loads[l], "q_pu", 0.0), within=Reals, mutable=True)
 
-    def create_load_shed_variables(self):
-        m = self.model
+    def create_load_shed_variables(self, model):
+        m = model
         m.p_shed = Var(m.LOADS, within=NonNegativeReals, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
         m.Shed_Max_Constraint = Constraint(m.LOADS, rule=lambda m, l: m.p_shed[l] <= m.load_p_pu[l])
         
         m.q_shed = Var(m.LOADS, domain=Reals, initialize=0) #Infinity bounds for convergence
 
-    def update_load_params(self):
-        m = self.model
+    def update_load_params(self, model):
+        m = model
         for l in m.LOADS:
             m.load_p_pu[l] = self.loads[l].p_pu
             if hasattr(self.loads[l], "q_pu"):
                 m.load_q_pu[l] = self.loads[l].q_pu
 
     # ------------- Wind Generators ---------------#
-    def create_wind_block(self):
-        self.create_wind_params()
-        self.create_wind_variables()
-        self.create_wind_constraints()
+    def create_wind_block(self, model):
+        self.create_wind_params(model)
+        self.create_wind_variables(model)
+        self.create_wind_constraints(model)
 
-    def create_wind_params(self):
-        m = self.model
+    def create_wind_params(self, model):
+        m = model
         m.wind_max_p_pu = Param(m.WIND_GENERATORS, initialize=lambda m, g: self.wind_generators[g].p_max_pu, within=NonNegativeReals, mutable=True)
 
-    def create_wind_variables(self):
-        m = self.model
+    def create_wind_variables(self, model):
+        m = model
         m.p_wind = Var(m.WIND_GENERATORS, bounds=(0, None), initialize=lambda m, g: self.wind_generators[g].p_max_pu)
         m.q_wind = Var(m.WIND_GENERATORS, initialize=0)
     
-    def create_wind_constraints(self):
-        m = self.model
+    def create_wind_constraints(self, model):
+        m = model
         m.Wind_Max_Constraint = Constraint(m.WIND_GENERATORS, rule=lambda m, g: m.p_wind[g] <= m.wind_max_p_pu[g])
         def wind_inverter_rule(m, g):
             s_max = self.wind_generators[g].inverter_s_max_pu
@@ -92,31 +103,30 @@ class OPFAC(OPFBaseModel):
             return m.q_wind[g]**2 + m.p_wind[g]**2 <= s_max**2
         m.Wind_Inverter_Constraint = Constraint(m.WIND_GENERATORS, rule=wind_inverter_rule)
 
-    def update_wind_params(self):
-        m = self.model
+    def update_wind_params(self, model):
+        m = model
         for g in m.WIND_GENERATORS:
             m.wind_max_p_pu[g] = self.wind_generators[g].p_max_pu
 
     # ------------- Battery (BESS) ---------------#
-    def create_bess_block(self):
-        self.create_bess_params()
-        self.create_bess_variables()
-        self.add_bess_constraints()
-
-    def create_bess_params(self):
-        m = self.model
+    def create_bess_block(self, model):
+        self.create_bess_params(model)
+        self.create_bess_variables(model)
+        self.add_bess_constraints(model)
+    def create_bess_params(self, model):
+        m = model
         m.bess_soc_pu = Param(m.BESS, initialize=lambda m, g: self.bess[g].soc_pu, within=NonNegativeReals, mutable=True)
 
-    def create_bess_variables(self):
-        m = self.model
+    def create_bess_variables(self, model):
+        m = model
         def charge_bounds_rule(m,g): return (0, self.bess[g].max_charge_rate_pu)
         def discharge_bounds_rule(m,g): return (0, self.bess[g].max_discharge_rate_pu)
         m.p_bess_out = Var(m.BESS, bounds=discharge_bounds_rule, initialize=0)
         m.p_bess_in = Var(m.BESS, bounds=charge_bounds_rule, initialize=0)
         m.q_bess = Var(m.BESS, initialize=0)
 
-    def add_bess_constraints(self):
-        m = self.model
+    def add_bess_constraints(self, model):
+        m = model
         def net_energy(m, g):
             batt = self.bess[g]
             charge = m.p_bess_in[g] * batt.efficiency_charge
@@ -141,23 +151,23 @@ class OPFAC(OPFBaseModel):
             return m.q_bess[g]**2 + (m.p_bess_out[g] - m.p_bess_in[g])**2 <= s_max**2
         m.BESS_Inverter_Constraint = Constraint(m.BESS, rule=bess_inverter_rule)
 
-    def update_bess_params(self):
-        m = self.model
+    def update_bess_params(self, model):
+        m = model
         for g in m.BESS:
             m.bess_soc_pu[g] = self.bess[g].soc_pu
 
     # ------------- Bus ---------------#
-    def create_bus_block(self):
-        self.create_bus_params()
-        self.create_bus_voltage_variables()
+    def create_bus_block(self, model):
+        self.create_bus_params(model)
+        self.create_bus_voltage_variables(model)
 
-    def create_bus_params(self):
-        m = self.model
+    def create_bus_params(self, model):
+        m = model
         m.bus_v_min = Param(m.BUSES, initialize=lambda m, b: self.buses[b].v_min_pu, within=NonNegativeReals, mutable=True)
         m.bus_v_max = Param(m.BUSES, initialize=lambda m, b: self.buses[b].v_max_pu, within=NonNegativeReals, mutable=True)
 
-    def create_bus_voltage_variables(self):
-        m = self.model
+    def create_bus_voltage_variables(self, model):
+        m = model
         m.v_pu = Var(m.BUSES, bounds=lambda m, b: (m.bus_v_min[b], m.bus_v_max[b]), initialize=1.0)
         m.theta_rad = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
         # Fix slack bus angle and voltage
@@ -166,11 +176,12 @@ class OPFAC(OPFBaseModel):
                 m.theta_rad[b.name].fix(0)
 
     # ------------- Lines ---------------#
-    def create_line_block(self):
-        self.create_flow_variables()
+    def create_line_block(self, model):
+        self.create_flow_variables(model)
+        self.flow_limits_rule(model)
 
-    def create_flow_variables(self):
-        m = self.model
+    def create_flow_variables(self, model):
+        m = model
         m.p_flow_out = Var(m.LINES, domain=Reals, initialize=0)
         m.p_flow_in = Var(m.LINES, domain=Reals, initialize=0)
         m.q_flow_out = Var(m.LINES, domain=Reals, initialize=0)
@@ -221,8 +232,6 @@ class OPFAC(OPFBaseModel):
         m.flow_in_rule = Constraint(m.LINES, rule=flow_in_rule)
 
         # --- FLUXO REATIVO (Q) ---
-        # AQUI É O PULO DO GATO: Precisamos somar o shunt localmente!
-        
         def flow_out_q_rule(m, ln):
             line = self.lines[ln]
             i_idx = get_idx(line.from_bus.id)
@@ -231,16 +240,12 @@ class OPFAC(OPFBaseModel):
             G_ij = self.net.g_bus[i_idx, j_idx]
             B_ij = self.net.b_bus[i_idx, j_idx]
             
-            # Recupera o shunt desta linha específica (não está em B_ij)
             b_sh = line.shunt_half_pu 
             
             i = line.from_bus.name
             j = line.to_bus.name
             theta_ij = m.theta_rad[i] - m.theta_rad[j]
             
-            # Q_out = Q_serie + Q_shunt
-            # Q_serie usa B_ij (que é -b_serie). Q_shunt usa -b_sh (injeção)
-            # A fórmula correta combinando Ybus e Shunt explícito é:
             return m.q_flow_out[ln] == (
                 (B_ij - b_sh) * m.v_pu[i]**2 
                 + m.v_pu[i] * m.v_pu[j] * (G_ij * sin(theta_ij) - B_ij * cos(theta_ij))
@@ -266,18 +271,26 @@ class OPFAC(OPFBaseModel):
             )
         m.flow_in_q_rule = Constraint(m.LINES, rule=flow_in_q_rule)
 
-        # Bounds
-        def flow_out_bounds(m, ln):
-            return inequality(-self.lines[ln].flow_max_pu, m.p_flow_out[ln], self.lines[ln].flow_max_pu)
-        m.flow_out_bounds = Constraint(m.LINES, rule=flow_out_bounds)
+    def flow_limits_rule(self, model):
+        m = model
 
-        def flow_in_bounds(m, ln):
-            return inequality(-self.lines[ln].flow_max_pu, m.p_flow_in[ln], self.lines[ln].flow_max_pu)
-        m.flow_in_bounds = Constraint(m.LINES, rule=flow_in_bounds)
+        def thermal_limit_out_rule(m, ln):
+            limit = self.lines[ln].flow_max_pu
+            if limit is None or limit == 0:
+                return Constraint.Skip
+            return m.p_flow_out[ln]**2 + m.q_flow_out[ln]**2 <= limit**2
+        m.thermal_limit_out = Constraint(m.LINES, rule=thermal_limit_out_rule)
+
+        def thermal_limit_in_rule(m, ln):
+            limit = self.lines[ln].flow_max_pu
+            if limit is None or limit == 0:
+                return Constraint.Skip
+            return m.p_flow_in[ln]**2 + m.q_flow_in[ln]**2 <= limit**2
+        m.thermal_limit_in = Constraint(m.LINES, rule=thermal_limit_in_rule)
 
     # ------------- Nodal Balance ---------------#
-    def add_nodal_balance_constraints(self):
-        m = self.model
+    def add_nodal_balance_constraints(self, model):
+        m = model
         def active_power_balance_rule(m, bus):
             # 1. Geração (Sources)
             gen_thermal = sum(m.p_thermal[g] for g in m.THERMAL_GENERATORS if self.thermal_generators[g].bus.name == bus)
@@ -311,19 +324,19 @@ class OPFAC(OPFBaseModel):
             shed_q = sum(m.q_shed[l] for l in m.LOADS if self.loads[l].bus.name == bus)
 
             # Fluxos Q Saindo da barra
-            flows_q_leaving = sum(m.q_flow_out[ln] for ln in m.LINES if self.lines[ln].from_bus.name == bus) + \
-                              sum(m.q_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
+            flows_q_leaving =   sum(m.q_flow_out[ln] for ln in m.LINES if self.lines[ln].from_bus.name == bus) + \
+                                sum(m.q_flow_in[ln] for ln in m.LINES if self.lines[ln].to_bus.name == bus)
             
             return gen_q_thermal + gen_q_wind + gen_q_bess + shed_q - flows_q_leaving ==  load_q
             
         m.reactive_power_balance = Constraint(m.BUSES, rule=reactive_power_balance_rule)
     
     # ------------- Model Update ---------------#
-    def update_network_with_results(self):
+    def update_network_with_results(self, model):
         """
         Update the network object with results from the Pyomo model.
         """
-        m = self.model
+        m = model
         for g in m.THERMAL_GENERATORS:
             self.thermal_generators[g].p_pu = value(m.p_thermal[g])
             self.thermal_generators[g].q_pu = value(m.q_thermal[g])
