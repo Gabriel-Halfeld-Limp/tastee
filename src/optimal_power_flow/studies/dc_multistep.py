@@ -39,7 +39,7 @@ class OPFDCMultiStep(OPFDC):
         """Define o SOC inicial das baterias (opcional)."""
         if initial_soc: self.initial_soc = initial_soc
 
-    # --- OVERRIDES (Polimorfismo) ---
+    # --- OVERRIDES ---
     def create_bess_block(self, container):
         """
         SOBRESCREVE o método original do OPFDC.
@@ -182,8 +182,14 @@ class OPFDCMultiStep(OPFDC):
                 opt.options['max_cpu_time'] = time_limit
             elif solver_name in ['cbc', 'glpk']:
                 opt.options['sec'] = time_limit
+        results = opt.solve(self.model, tee=tee)
 
-        return opt.solve(self.model, tee=tee)
+        term = results.solver.termination_condition
+        status = results.solver.status
+        if status != SolverStatus.ok or term not in {TerminationCondition.optimal, TerminationCondition.locallyOptimal, TerminationCondition.feasible}:
+            raise RuntimeError(f"Solver failed: status={status}, termination={term}")
+
+        return results
 
     def extract_results_dataframe(self):
         """Extrai resultados organizados por tempo."""

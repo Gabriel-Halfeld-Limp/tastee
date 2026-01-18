@@ -1,149 +1,125 @@
-import argparse
-import numpy as np
 import pandas as pd
-from typing import Dict, Optional
+import numpy as np
+from tqdm import tqdm
+from pyomo.environ import value, SolverFactory
+
+# Importa o sistema e o estudo AC
+from power.systems import B6L8Charged 
 from optimal_power_flow.studies.ac_multistep import OPFACMultiStep
-from power import Network
 
-
-def _sample_profile(base: float, sigma: float = 0.05) -> float:
-    return max(0.0, np.random.normal(base, sigma * base))
-
-
-def generate_ac_dataset(
-    network: Network,
-    periods: int = 24,
-    n_samples: int = 100,
-    load_profile_base: Optional[np.ndarray] = None,
-    wind_profile_base: Optional[np.ndarray] = None,
-    sigma_load: float = 0.1,
-    sigma_wind: float = 0.1,
-    solver_name: str = "ipopt",
-    time_limit: Optional[int] = 120,
-    tee: bool = False,
-    out_path: Optional[str] = None,
-) -> pd.DataFrame:
+def generate_dataset(n_scenarios=1000, output_path="dataset_ac.parquet"):
     """
-    Gera um dataset AC resolvendo múltiplos cenários com OPFACMultiStep.
-
-    Retorna um DataFrame com colunas de entrada (P_load, P_wind, P_thermal)
-    e targets (V, theta, Q_gen, loading).
+    Gera dados sintéticos rodando o AC OPF Multistep.
+    Recria o objeto de estudo a cada iteração para garantir independência dos cenários.
     """
-    # Perfis base default (24h) se não fornecidos
-    if load_profile_base is None:
-        load_profile_base = np.ones(periods)
-    if wind_profile_base is None:
-        wind_profile_base = np.ones(periods)
+    
+    # Perfis Base
+    load_profile = np.array([0.7, 0.65, 0.6, 0.65, 0.75, 0.85, 0.95, 1.0, 1.05, 1.1, 1.08, 1.05, 1.02, 1.0, 0.98, 1.05, 1.15, 1.2, 1.18, 1.1, 1.0, 0.9, 0.8, 0.75])
+    wind_profile = np.array([0.9, 0.95, 0.98, 0.92, 0.85, 0.8, 0.7, 0.6, 0.45, 0.3, 0.25, 0.35, 0.4, 0.3, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.8, 0.85, 0.88, 0.92])
 
-    rows = []
-    opf = OPFACMultiStep(network, periods=periods)
-    opf.build_multistep_model()  # build once
+    data_rows = []
+    periods = 24
 
-    for sample in range(n_samples):
-        # Perturba perfis
-        load_profile = np.array([_sample_profile(v, sigma_load) for v in load_profile_base])
-        wind_profile = np.array([_sample_profile(v, sigma_wind) for v in wind_profile_base])
+    print(f"--- Iniciando Geração de {n_scenarios} Cenários AC ---")
+    
+    # Loop de Cenários
+    for i in tqdm(range(n_scenarios), desc="Simulando"):
+        try:
+            # 1. SETUP LIMPO POR ITERAÇÃO (A CORREÇÃO PRINCIPAL)
+            # Instanciamos o modelo do zero para evitar sujeira de memória do solver
+            net = B6L8Charged()
+            study = OPFACMultiStep(net, periods=periods)
+            
+            # --- A. Estocasticidade ---
+            scale_load = np.random.uniform(0.8, 1.2)
+            scale_wind = np.random.uniform(0.0, 1.0)
+            
+            noise_load = np.random.normal(1.0, 0.05, periods)
+            noise_wind = np.random.normal(1.0, 0.10, periods)
 
-        for load in network.loads:
-            opf.set_load_series(load.name, load_profile * load.p_pu)
-        for wnd in network.wind_generators:
-            opf.set_wind_series(wnd.name, wind_profile * wnd.p_max_pu)
+            # Cargas
+            current_loads = {}
+            for load in net.loads:
+                # Importante: Garantir tipos numéricos python/numpy padrão
+                series = load_profile * load.p_pu * scale_load * noise_load
+                study.set_load_series(load.name, series)
+                current_loads[load.name] = series
 
-        # Solve (modelo já construído)
-        res = opf.solve_multistep(solver_name=solver_name, time_limit=time_limit, tee=tee)
-        status = getattr(res.solver[0], "termination_condition", None)
-        if status and str(status).lower() not in {"optimal", "locallyoptimal", "optimalterminations"}:
+            # Ventos
+            current_winds = {}
+            for wnd in net.wind_generators:
+                series = wind_profile * wnd.p_max_pu * scale_wind * noise_wind
+                series = np.clip(series, 0, wnd.p_max_pu)
+                study.set_wind_series(wnd.name, series)
+                current_winds[wnd.name] = series
+
+            # --- B. Resolve ---
+            # Constrói o modelo JÁ COM OS DADOS NOVOS injetados na criação se possível, 
+            # ou constrói e o solver aplica os dados via _apply_time_series_data internamente.
+            study.build_multistep_model()
+            
+            res = study.solve_multistep(solver_name='ipopt', tee=False)
+            
+            # Verificação de status robusta
+            status = str(res.solver.termination_condition)
+            if status != 'optimal':
+                # Descomente para ver o erro específico se precisar
+                # print(f"Cenário {i} não convergiu: {status}") 
+                continue 
+
+            # --- C. Extração ---
+            m = study.model
+            for t in range(periods):
+                blk = m.period[t]
+                row = {'scenario': i, 'hour': t}
+
+                # Inputs (X)
+                for l in net.loads:
+                    row[f'input_Pd_{l.name}'] = current_loads[l.name][t]
+                
+                for w in net.wind_generators:
+                    row[f'input_Pwind_{w.name}'] = current_winds[w.name][t]
+
+                for g in net.thermal_generators:
+                    row[f'input_Pg_{g.name}'] = value(blk.p_thermal[g.name])
+                
+                for b in net.batteries:
+                    p_inj = value(blk.p_bess_out[b.name]) - value(blk.p_bess_in[b.name])
+                    row[f'input_Pg_{b.name}'] = p_inj
+
+                # Outputs (Y)
+                for b in net.buses:
+                    row[f'target_V_{b.name}'] = value(blk.v_pu[b.name])
+                    row[f'target_Th_{b.name}'] = value(blk.theta_rad[b.name])
+
+                for g in net.thermal_generators:
+                    row[f'target_Qg_{g.name}'] = value(blk.q_thermal[g.name])
+                
+                for ln in net.lines:
+                    p = value(blk.p_flow_out[ln.name])
+                    q = value(blk.q_flow_out[ln.name])
+                    s = (p**2 + q**2)**0.5
+                    limit = ln.flow_max_pu
+                    loading = (s / limit * 100) if limit and limit > 0 else 0.0
+                    row[f'target_Loading_{ln.name}'] = loading
+
+                data_rows.append(row)
+
+        except Exception as e:
+            print(f"Erro crítico no cenário {i}: {e}")
             continue
 
-        dfs = opf.extract_results_dataframe()
-        gen = dfs["generation"]
-        bus = dfs["bus"]
-        load_df = dfs["load"]
-        line = dfs["line"]
+    if not data_rows:
+        print("Nenhum cenário convergiu! Verifique se o Ipopt está instalado corretamente.")
+        return None
 
-        # Merge por tempo
-        for t in range(periods):
-            g_t = gen[gen.time == t]
-            b_t = bus[bus.time == t]
-            l_t = load_df[load_df.time == t]
-            ln_t = line[line.time == t]
-
-            row: Dict[str, float] = {"sample": sample, "time": t}
-
-            # Entradas: P_load, P_wind_max, P_thermal_decision
-            for _, r in l_t.iterrows():
-                row[f"load_{r.id}_p"] = r.p_load
-            for _, r in g_t[g_t.type == "wind"].iterrows():
-                row[f"wind_{r.id}_p"] = r.p_pu
-            for _, r in g_t[g_t.type == "thermal"].iterrows():
-                row[f"thermal_{r.id}_p"] = r.p_pu
-
-            # Targets: V, theta, Q_gen, loading
-            for _, r in b_t.iterrows():
-                row[f"bus_{r.id}_v"] = r.v_pu
-                row[f"bus_{r.id}_theta"] = r.theta_rad
-            for _, r in g_t[g_t.type == "thermal"].iterrows():
-                row[f"thermal_{r.id}_q"] = r.q_pu if "q_pu" in r else 0.0
-            for _, r in g_t[g_t.type == "wind"].iterrows():
-                row[f"wind_{r.id}_q"] = r.q_pu if "q_pu" in r else 0.0
-            for _, r in g_t[g_t.type == "bess"].iterrows():
-                row[f"bess_{r.id}_q"] = r.q_pu if "q_pu" in r else 0.0
-            for _, r in ln_t.iterrows():
-                row[f"line_{r.id}_loading"] = r.loading_percent
-
-            rows.append(row)
-
-    df = pd.DataFrame(rows)
-    if out_path:
-        if out_path.endswith(".parquet"):
-            df.to_parquet(out_path, index=False)
-        else:
-            df.to_csv(out_path, index=False)
+    df = pd.DataFrame(data_rows)
+    df.to_parquet(output_path)
+    
+    print(f"\nSucesso! Dataset salvo em: {output_path}")
+    print(f"Cenários válidos: {len(df) / periods:.0f} de {n_scenarios}")
+    
     return df
 
-
-def _default_profiles(periods: int):
-    load_profile_base = np.ones(periods)
-    wind_profile_base = np.ones(periods)
-    return load_profile_base, wind_profile_base
-
-
-def _parse_args():
-    p = argparse.ArgumentParser(description="Generate AC dataset via OPFACMultiStep")
-    p.add_argument("--periods", type=int, default=24)
-    p.add_argument("--samples", type=int, default=100)
-    p.add_argument("--sigma-load", type=float, default=0.1)
-    p.add_argument("--sigma-wind", type=float, default=0.1)
-    p.add_argument("--solver", type=str, default="ipopt")
-    p.add_argument("--time-limit", type=int, default=120)
-    p.add_argument("--tee", action="store_true")
-    p.add_argument("--out", type=str, default="data/ac_samples.parquet")
-    p.add_argument("--system", type=str, default="B6L8Charged", help="power.systems class name")
-    return p.parse_args()
-
-
-def _load_system(system_name: str) -> Network:
-    from power import systems
-    if not hasattr(systems, system_name):
-        raise ValueError(f"Sistema {system_name} não encontrado em power.systems")
-    return getattr(systems, system_name)()
-
-
 if __name__ == "__main__":
-    args = _parse_args()
-    net = _load_system(args.system)
-    load_base, wind_base = _default_profiles(args.periods)
-    df = generate_ac_dataset(
-        net,
-        periods=args.periods,
-        n_samples=args.samples,
-        load_profile_base=load_base,
-        wind_profile_base=wind_base,
-        sigma_load=args.sigma_load,
-        sigma_wind=args.sigma_wind,
-        solver_name=args.solver,
-        time_limit=args.time_limit,
-        tee=args.tee,
-        out_path=args.out,
-    )
-    print(f"Geradas {len(df)} amostras e salvas em {args.out}")
+    generate_dataset(n_scenarios=1000, output_path="teste_dataset.parquet")

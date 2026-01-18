@@ -196,6 +196,12 @@ class OPFACMultiStep(OPFAC):
                 opt.options['max_cpu_time'] = time_limit
 
         results = opt.solve(self.model, tee=tee)
+
+        term = results.solver.termination_condition
+        status = results.solver.status
+        if status != SolverStatus.ok or term not in {TerminationCondition.optimal, TerminationCondition.locallyOptimal, TerminationCondition.feasible}:
+            raise RuntimeError(f"Solver failed: status={status}, termination={term}")
+
         return results
 
     def extract_results_dataframe(self):
