@@ -1,574 +1,301 @@
 from pyomo.environ import *
 import pandas as pd
-import numpy as np
 from optimal_power_flow.core.dc_physics import OPFDC
 from power import Network
-from data_models import TimeSeries
 
-class OPFMultiStep(OPFDC):
+class OPFDCMultiStep(OPFDC):
     """
-    Estudo de Fluxo de Potência DC Multiperiodo com Perdas Iterativas.
-    Usa Blocks do Pyomo para criar um período por bloco, conectando-os via SOC das baterias.
+    Estudo de Fluxo de Potência Ótimo DC Multi-período (Linear).
+    
+    Herda de OPFDC para reutilizar a física DC (Fluxo Linearizado, Balanço de P).
+    Gerencia a dimensão temporal e acoplamentos (Rampa, Bateria).
     """
 
     def __init__(self, network: Network, periods: int = 24):
-        """
-        Inicializa o modelo multiperiodo.
-        
-        Args:
-            network: Rede elétrica
-            periods: Número de períodos (timesteps) do horizonte
-        """
-        # Chama construtor da classe pai (NÃO constrói física ainda)
         super().__init__(network)
         self.periods = periods
         
-        # Armazena séries temporais (será populado depois)
-        self.load_series = {}    # {load_name: TimeSeries}
-        self.wind_series = {}    # {gen_name: TimeSeries}
+        # Armazenamento das séries temporais
+        self.load_series = {} 
+        self.wind_series = {}
         
-        # Controla se o modelo foi construído
-        self._is_multiperiod_built = False
+        # Estados iniciais
+        self.initial_soc = {} # {bess_id: valor_pu}
 
-    def set_load_series(self, load_name: str, series: TimeSeries):
-        """Define série temporal de carga para uma load."""
-        if len(series.values) != self.periods:
-            raise ValueError(f"Load {load_name}: série deve ter {self.periods} valores")
-        self.load_series[load_name] = series
+        self._is_built = False
 
-    def set_wind_series(self, gen_name: str, series: TimeSeries):
-        """Define série temporal de geração eólica para um gerador."""
-        if len(series.values) != self.periods:
-            raise ValueError(f"Wind {gen_name}: série deve ter {self.periods} valores")
-        self.wind_series[gen_name] = series
+    # --- SETUP DE DADOS ---
+    def set_load_series(self, load_name: str, values: list):
+        if len(values) != self.periods:
+            raise ValueError(f"Série de carga {load_name} tem tamanho {len(values)}, esperado {self.periods}")
+        self.load_series[load_name] = values
 
-    def build_multiperiod_model(self):
+    def set_wind_series(self, gen_name: str, values: list):
+        if len(values) != self.periods:
+            raise ValueError(f"Série eólica {gen_name} tem tamanho {len(values)}, esperado {self.periods}")
+        self.wind_series[gen_name] = values
+
+    def set_initial_conditions(self, initial_soc: dict = None):
+        """Define o SOC inicial das baterias (opcional)."""
+        if initial_soc: self.initial_soc = initial_soc
+
+    # --- OVERRIDES (Polimorfismo) ---
+    def create_bess_block(self, container):
         """
-        Constrói o modelo multiperiodo usando Blocks do Pyomo.
-        Cada período é um bloco independente, mas conectados via SOC das baterias.
+        SOBRESCREVE o método original do OPFDC.
+        Criamos apenas os parâmetros e variáveis locais.
+        NÃO chamamos add_bess_constraints, pois usaremos a lógica temporal global.
         """
-        if self._is_multiperiod_built:
-            return
-        
-        # 1. Constrói base (BUSES, LINES, GENERATORS, etc.)
+        self.create_bess_params(container)
+        self.create_bess_variables(container)
+
+    # --- CONSTRUÇÃO DO MODELO ---
+    def build_multistep_model(self):
+        if self._is_built: return
+
+        # 1. Base (Sets globais)
         self._build_base_model()
-        
         m = self.model
-        
-        # 2. Cria conjunto de períodos
-        m.PERIODS = RangeSet(0, self.periods - 1)
-        
-        # 3. Cria um BLOCK para cada período
-        # Cada bloco terá sua própria cópia das variáveis e constraints
-        m.period = Block(m.PERIODS)
-        
-        for t in m.PERIODS:
-            self._build_period_block(t)
-        
-        # 4. Adiciona acoplamento temporal (SOC das baterias)
-        self._add_temporal_coupling()
-        
-        self._is_multiperiod_built = True
 
-    def _build_period_block(self, t):
-        """
-        Constrói um bloco para o período t com todas as variáveis e constraints.
-        Replica a estrutura do OPFDC, mas dentro de um Block.
-        """
+        # 2. Horizonte Temporal
+        m.TIME = RangeSet(0, self.periods - 1)
+        
+        # 3. Blocos Temporais
+        m.period = Block(m.TIME)
+
+        for t in m.TIME:
+            blk = m.period[t]
+            # Chama a física DC para popular este bloco. 
+            # Como sobrescrevemos create_bess_block, a bateria fica "livre" para ser amarrada globalmente.
+            self.build_physics_on_container(blk)
+
+        # 4. Acoplamentos Temporais
+        self._add_temporal_constraints()
+
+        # 5. Objetivo Global
+        self._build_global_objective()
+
+        self._is_built = True
+
+    def _add_temporal_constraints(self):
         m = self.model
-        blk = m.period[t]
         
-        # --- VARIÁVEIS ---
-        # Geração Térmica
-        blk.p_thermal = Var(m.THERMAL_GENERATORS, 
-                            bounds=lambda model, g: (self.thermal_generators[g].p_min_pu, 
-                                                    self.thermal_generators[g].p_max_pu), 
-                            initialize=0)
-        
-        # Geração Eólica
-        blk.p_wind = Var(m.WIND_GENERATORS, bounds=(0, None), initialize=0)
-        
-        # Baterias
-        def charge_bounds_rule(model, g): 
-            return (0, self.bess[g].dc_max_charge_rate_pu)
-        def discharge_bounds_rule(model, g): 
-            return (0, self.bess[g].dc_max_discharge_rate_pu)
-        
-        blk.p_bess_out = Var(m.BESS, bounds=discharge_bounds_rule, initialize=0)
-        blk.p_bess_in = Var(m.BESS, bounds=charge_bounds_rule, initialize=0)
-        blk.bess_soc = Var(m.BESS, bounds=(0, None), initialize=0)  # SOC do período
-        
-        # Corte de Carga
-        blk.p_shed = Var(m.LOADS, bounds=(0, None), initialize=0)
-        
-        # Ângulos
-        blk.theta_rad = Var(m.BUSES, bounds=(-np.pi, np.pi), initialize=0)
-        
-        # Fluxos
-        blk.flow = Var(m.LINES, 
-                        bounds=lambda model, l: (-self.lines[l].flow_max_pu, 
-                                                self.lines[l].flow_max_pu), 
-                        initialize=0)
-        
-        # Parâmetros mutáveis (perdas, carga, vento)
-        blk.bus_loss = Param(m.BUSES, initialize=0, within=Reals, mutable=True)
-        blk.load_p = Param(m.LOADS, initialize=0, within=NonNegativeReals, mutable=True)
-        blk.wind_max_p = Param(m.WIND_GENERATORS, initialize=0, within=NonNegativeReals, mutable=True)
-        
-        # --- CONSTRAINTS ---
-        
-        # Fix slack bus angle
-        for b in self.buses.values():
-            if b.btype.name == 'SLACK':
-                blk.theta_rad[b.name].setlb(0)
-                blk.theta_rad[b.name].setub(0)
-        
-        # Limite de shed
-        def shed_max_rule(model, l):
-            return blk.p_shed[l] <= blk.load_p[l]
-        blk.Shed_Max_Constraint = Constraint(m.LOADS, rule=shed_max_rule)
-        
-        # Limite de vento
-        def wind_max_rule(model, g):
-            return blk.p_wind[g] <= blk.wind_max_p[g]
-        blk.Wind_Max_Constraint = Constraint(m.WIND_GENERATORS, rule=wind_max_rule)
-        
-        # Limites de SOC da bateria
-        def bess_soc_max_rule(model, g):
-            return blk.bess_soc[g] <= self.bess[g].capacity_pu
-        blk.BESS_SOC_Max_Constraint = Constraint(m.BESS, rule=bess_soc_max_rule)
-        
-        def bess_soc_min_rule(model, g):
-            return blk.bess_soc[g] >= 0
-        blk.BESS_SOC_Min_Constraint = Constraint(m.BESS, rule=bess_soc_min_rule)
-        
-        # Fluxo DC
-        def dc_flow_rule(model, l):
-            line = self.lines[l]
-            return blk.flow[l] == (blk.theta_rad[line.from_bus.name] - 
-                                   blk.theta_rad[line.to_bus.name]) / line.x_pu
-        blk.DCFlowConstraint = Constraint(m.LINES, rule=dc_flow_rule)
-        
-        # Balanço Nodal
-        def nodal_balance_rule(model, b):
-            gen_thermal = sum(blk.p_thermal[g] for g in m.THERMAL_GENERATORS 
-                             if self.thermal_generators[g].bus.name == b)
-            gen_wind = sum(blk.p_wind[g] for g in m.WIND_GENERATORS 
-                          if self.wind_generators[g].bus.name == b)
-            gen_bess_out = sum(blk.p_bess_out[g] for g in m.BESS 
-                              if self.bess[g].bus.name == b)
-            gen_bess_in = sum(blk.p_bess_in[g] for g in m.BESS 
-                             if self.bess[g].bus.name == b)
-            load = sum(blk.load_p[l] for l in m.LOADS 
-                      if self.loads[l].bus.name == b)
-            shed = sum(blk.p_shed[l] for l in m.LOADS 
-                      if self.loads[l].bus.name == b)
-            loss = blk.bus_loss[b]
-            flow_in = sum(blk.flow[l] for l in m.LINES 
-                         if self.lines[l].to_bus.name == b)
-            flow_out = sum(blk.flow[l] for l in m.LINES 
-                          if self.lines[l].from_bus.name == b)
+        # --- 1. Acoplamento de Baterias (SOC Tracking) ---
+        m.bess_soc_global = Var(m.BESS, m.TIME, bounds=lambda m, g, t: (0, self.bess[g].capacity_pu), initialize=0)
+
+        def soc_dynamics_rule(m, g, t):
+            # Variaveis locais dentro do bloco t
+            p_in = m.period[t].p_bess_in[g]
+            p_out = m.period[t].p_bess_out[g]
             
-            return (gen_thermal + gen_wind + gen_bess_out - gen_bess_in + 
-                    shed + flow_in - flow_out == load + loss)
-        
-        blk.NodalBalanceConstraint = Constraint(m.BUSES, rule=nodal_balance_rule)
+            eff_c = self.bess[g].efficiency_charge
+            eff_d = self.bess[g].efficiency_discharge
+            
+            net_energy = (p_in * eff_c) - (p_out / eff_d)
 
-    def _add_temporal_coupling(self):
-        """
-        Adiciona constraints de acoplamento temporal via SOC das baterias.
-        SOC[t+1] = SOC[t] + (charge[t] * eff_c - discharge[t] / eff_d)
-        """
-        m = self.model
-        
-        def soc_coupling_rule(model, g, t):
             if t == 0:
-                # Período inicial: usa SOC inicial da bateria
-                soc_prev = self.bess[g].soc_pu
+                soc_prev = self.initial_soc.get(g, self.bess[g].soc_pu)
             else:
-                soc_prev = m.period[t-1].bess_soc[g]
+                soc_prev = m.bess_soc_global[g, t-1]
             
-            batt = self.bess[g]
-            charge = m.period[t].p_bess_in[g] * batt.efficiency_charge
-            discharge = m.period[t].p_bess_out[g] / batt.efficiency_discharge
-            
-            return m.period[t].bess_soc[g] == soc_prev + charge - discharge
-        
-        m.SOC_Coupling = Constraint(m.BESS, m.PERIODS, rule=soc_coupling_rule)
+            return m.bess_soc_global[g, t] == soc_prev + net_energy
 
-    def build_objective(self):
-        """
-        Função objetivo: minimizar custo total ao longo de todos os períodos.
-        """
+        m.SOC_Dynamics_Constraint = Constraint(m.BESS, m.TIME, rule=soc_dynamics_rule)
+
+        # --- 2. Acoplamento de Rampa Térmica ---
+        def ramp_up_rule(m, g, t):
+            if t == 0: return Constraint.Skip
+            
+            p_prev = m.period[t-1].p_thermal[g]
+            p_curr = m.period[t].p_thermal[g]
+            
+            ramp = getattr(self.thermal_generators[g], 'ramp_up_pu', self.thermal_generators[g].p_max_pu)
+            return p_curr - p_prev <= ramp
+
+        def ramp_down_rule(m, g, t):
+            if t == 0: return Constraint.Skip
+            
+            p_prev = m.period[t-1].p_thermal[g]
+            p_curr = m.period[t].p_thermal[g]
+            
+            ramp = getattr(self.thermal_generators[g], 'ramp_down_pu', self.thermal_generators[g].p_max_pu)
+            return p_prev - p_curr <= ramp
+
+        m.Ramp_Up_Constraint = Constraint(m.THERMAL_GENERATORS, m.TIME, rule=ramp_up_rule)
+        m.Ramp_Down_Constraint = Constraint(m.THERMAL_GENERATORS, m.TIME, rule=ramp_down_rule)
+
+    def _apply_time_series_data(self):
+        """Injeta os dados das séries nos parâmetros dos blocos."""
         m = self.model
-        
+        for t in m.TIME:
+            blk = m.period[t]
+
+            # Cargas
+            for load_id, values in self.load_series.items():
+                if load_id in blk.load_p_pu:
+                    blk.load_p_pu[load_id] = values[t]
+                    # Update upper bound do shed
+                    blk.p_shed[load_id].setub(values[t])
+
+            # Eólicas
+            for gen_id, values in self.wind_series.items():
+                if gen_id in blk.wind_max_p_pu:
+                    blk.wind_max_p_pu[gen_id] = values[t]
+
+    def _build_global_objective(self):
+        m = self.model
         total_cost = 0
         
-        for t in m.PERIODS:
+        for t in m.TIME:
             blk = m.period[t]
-            
-            # Custo Geração Térmica
-            cost_thermal = sum(blk.p_thermal[g] * self.thermal_generators[g].cost_b_pu 
-                              for g in m.THERMAL_GENERATORS)
-            
-            # Custo de Déficit (Shedding)
-            cost_shed = sum(blk.p_shed[l] * self.loads[l].cost_shed_pu 
-                           for l in m.LOADS)
-            
-            # Custo Operacional de Bateria
-            cost_bess = sum(blk.p_bess_out[g] * self.bess[g].cost_discharge_pu + 
-                           blk.p_bess_in[g] * self.bess[g].cost_charge_pu
-                           for g in m.BESS)
-            
-            total_cost += cost_thermal + cost_shed + cost_bess
-        
-        m.obj = Objective(expr=total_cost, sense=minimize)
+            # Custo Térmica (Linear)
+            total_cost += sum(blk.p_thermal[g] * self.thermal_generators[g].cost_b_pu for g in m.THERMAL_GENERATORS)
+            # Custo Shedding
+            total_cost += sum(blk.p_shed[l] * self.loads[l].cost_shed_pu for l in m.LOADS)
+            # Custo Operação Bateria
+            total_cost += sum(blk.p_bess_out[g] * self.bess[g].cost_discharge_pu + 
+                              blk.p_bess_in[g] * self.bess[g].cost_charge_pu 
+                                for g in m.BESS)
 
-    def update_period_data(self, t):
-        """
-        Atualiza os parâmetros de carga e vento para o período t.
-        """
-        m = self.model
-        blk = m.period[t]
-        
-        # Atualiza carga
-        for l in m.LOADS:
-            if l in self.load_series:
-                blk.load_p[l] = self.load_series[l].values[t]
-            else:
-                blk.load_p[l] = self.loads[l].p_pu
-        
-        # Atualiza vento
-        for g in m.WIND_GENERATORS:
-            if g in self.wind_series:
-                blk.wind_max_p[g] = self.wind_series[g].values[t]
-            else:
-                blk.wind_max_p[g] = self.wind_generators[g].p_max_pu
+        m.GlobalObjective = Objective(expr=total_cost, sense=minimize)
 
-    def _calculate_period_losses(self, t):
-        """
-        Calcula perdas para o período t baseado nos ângulos da solução atual.
-        """
-        m = self.model
-        blk = m.period[t]
+    def solve_multistep(self, solver_name='ipopt', time_limit=None, tee=False):
+        if not self._is_built:
+            self.build_multistep_model()
         
-        new_bus_losses = {b: 0.0 for b in m.BUSES}
-        total_loss = 0.0
-
-        for l_name in m.LINES:
-            line = self.lines[l_name]
-            r = line.r_pu
-            x = line.x_pu
-            denom = (r**2 + x**2)
-            if denom == 0: 
-                continue
-            
-            g_series = r / denom
-            theta_from = value(blk.theta_rad[line.from_bus.name])
-            theta_to = value(blk.theta_rad[line.to_bus.name])
-            
-            p_loss = g_series * (theta_from - theta_to)**2
-            
-            new_bus_losses[line.from_bus.name] += p_loss / 2.0
-            new_bus_losses[line.to_bus.name] += p_loss / 2.0
-            total_loss += p_loss
-
-        return new_bus_losses, total_loss
-
-    def solve(self, solver_name='ipopt', max_iter=20, tol=1e-4, verbose=False):
-        """
-        Resolve o problema multiperiodo com iteração de perdas.
-        """
-        # 1. Constrói modelo se necessário
-        if not self._is_multiperiod_built:
-            self.build_multiperiod_model()
-            self.build_objective()
+        self._apply_time_series_data()
         
-        # 2. Prepara sufixos para duals
-        m = self.model
-        m.dual = Suffix(direction=Suffix.IMPORT)
-        m.rc = Suffix(direction=Suffix.IMPORT)
-        
-        # 3. Atualiza dados de todos os períodos
-        for t in m.PERIODS:
-            self.update_period_data(t)
-        
-        # 4. Iteração de perdas
         opt = SolverFactory(solver_name)
-        prev_total_loss = -1.0
-        converged = False
+        # Ajustes para solvers lineares (se usar cbc, glpk, highs) ou ipopt
+        if solver_name == 'ipopt':
+            opt.options['max_iter'] = 3000
+            opt.options['tol'] = 1e-6
+            opt.options['print_level'] = 5 if tee else 0
         
-        for iteration in range(1, max_iter + 1):
-            # Resolve
-            results = opt.solve(m, tee=False)
-            
-            if (results.solver.status != SolverStatus.ok) and \
-               (results.solver.termination_condition != TerminationCondition.optimal):
-                print(f"Iteração {iteration}: Falha no solver. Status: {results.solver.status}")
-                break
-            
-            # Calcula perdas totais de todos os períodos
-            current_total_loss = 0.0
-            for t in m.PERIODS:
-                bus_losses_map, period_loss = self._calculate_period_losses(t)
-                current_total_loss += period_loss
-                
-                # Atualiza perdas do período
-                blk = m.period[t]
-                for b in m.BUSES:
-                    blk.bus_loss[b] = bus_losses_map[b]
-            
-            # Verifica convergência
-            diff = abs(current_total_loss - prev_total_loss)
-            if verbose:
-                cost = value(m.obj)
-                print(f"Iter {iteration}: Custo=${cost:,.2f} | Perdas Totais={current_total_loss*self.net.sb_mva:.2f} MW | Diff={diff:.2e}")
-            
-            if diff < tol:
-                converged = True
-                if verbose:
-                    print(">> Convergência atingida!")
-                break
-            
-            prev_total_loss = current_total_loss
-        
-        return self._extract_results(converged)
+        if time_limit:
+            # Opção varia conforme solver. Ipopt é max_cpu_time. Cbc é sec.
+            if solver_name == 'ipopt':
+                opt.options['max_cpu_time'] = time_limit
+            elif solver_name in ['cbc', 'glpk']:
+                opt.options['sec'] = time_limit
 
-    def _extract_results(self, converged):
-        """
-        Extrai resultados detalhados em DataFrames por período.
-        """
+        return opt.solve(self.model, tee=tee)
+
+    def extract_results_dataframe(self):
+        """Extrai resultados organizados por tempo."""
+        import pandas as pd
         m = self.model
-        sb = self.net.sb_mva
         
-        def v(var): 
-            return value(var) if var is not None else 0.0
+        data_gen = []
+        data_load = []
+        data_bus = []
+        data_lines = []
         
-        def get_dual(constraint):
-            if hasattr(m, 'dual') and constraint in m.dual:
-                return m.dual[constraint]
-            return 0.0
-        
-        def get_rc(variable):
-            if hasattr(m, 'rc') and variable in m.rc:
-                return m.rc[variable]
-            return 0.0
-        
-        # Resultados agregados
-        all_thermal = []
-        all_wind = []
-        all_bess = []
-        all_shed = []
-        all_bus = []
-        all_line = []
-        
-        total_cost_all = value(m.obj)
-        total_loss_all = 0.0
-        total_shed_all = 0.0
-        total_curtail_all = 0.0
-        
-        for t in m.PERIODS:
+        for t in m.TIME:
             blk = m.period[t]
             
-            # --- TÉRMICA ---
+            # Generators
             for g in m.THERMAL_GENERATORS:
-                all_thermal.append({
-                    "Period": t,
-                    "Generator": g,
-                    "Bus": self.thermal_generators[g].bus.name,
-                    "P_MW": v(blk.p_thermal[g]) * sb,
-                    "Cost_pu": self.thermal_generators[g].cost_b_pu,
-                    "RC": get_rc(blk.p_thermal[g])
-                })
-            
-            # --- EÓLICA ---
+                data_gen.append({'time': t, 'id': g, 'type': 'thermal', 
+                                    'p_pu': value(blk.p_thermal[g])})
             for g in m.WIND_GENERATORS:
-                p_val = v(blk.p_wind[g])
-                p_max = v(blk.wind_max_p[g])
-                all_wind.append({
-                    "Period": t,
-                    "Generator": g,
-                    "Bus": self.wind_generators[g].bus.name,
-                    "Available_MW": p_max * sb,
-                    "P_MW": p_val * sb,
-                    "Curtailment_MW": (p_max - p_val) * sb,
-                    "Dual_Max": get_dual(blk.Wind_Max_Constraint[g])
-                })
-                total_curtail_all += (p_max - p_val) * sb
-            
-            # --- BATERIAS ---
+                data_gen.append({'time': t, 'id': g, 'type': 'wind', 
+                                    'p_pu': value(blk.p_wind[g])})
             for g in m.BESS:
-                all_bess.append({
-                    "Period": t,
-                    "Battery": g,
-                    "Bus": self.bess[g].bus.name,
-                    "P_Out_MW": v(blk.p_bess_out[g]) * sb,
-                    "P_In_MW": v(blk.p_bess_in[g]) * sb,
-                    "SOC_MWh": v(blk.bess_soc[g]) * sb,
-                    "Dual_SOC_Max": get_dual(blk.BESS_SOC_Max_Constraint[g]),
-                    "Dual_SOC_Min": get_dual(blk.BESS_SOC_Min_Constraint[g])
-                })
-            
-            # --- SHED ---
-            for l in m.LOADS:
-                shed_val = v(blk.p_shed[l])
-                all_shed.append({
-                    "Period": t,
-                    "Load": l,
-                    "Bus": self.loads[l].bus.name,
-                    "P_Shed_MW": shed_val * sb,
-                    "P_Load_MW": v(blk.load_p[l]) * sb,
-                    "Cost_Shed": self.loads[l].cost_shed_pu,
-                    "Dual_Shed_Limit": get_dual(blk.Shed_Max_Constraint[l])
-                })
-                total_shed_all += shed_val * sb
-            
-            # --- BARRAS ---
+                data_gen.append({'time': t, 'id': g, 'type': 'bess', 
+                                    'p_pu': value(blk.p_bess_out[g]) - value(blk.p_bess_in[g]),
+                                    'soc_pu': value(m.bess_soc_global[g, t])})
+
+            # Bus (Angles) - No DC voltage is fixed 1.0 usually
             for b in m.BUSES:
-                lmp = get_dual(blk.NodalBalanceConstraint[b])
-                loss_mw = v(blk.bus_loss[b]) * sb
-                total_loss_all += loss_mw
+                data_bus.append({'time': t, 'id': b, 
+                                    'v_pu': 1.0, 
+                                    'theta_rad': value(blk.theta_rad[b])})
                 
-                all_bus.append({
-                    "Period": t,
-                    "Bus": b,
-                    "Theta_deg": np.rad2deg(v(blk.theta_rad[b])),
-                    "LMP": lmp,
-                    "Loss_MW": loss_mw
-                })
-            
-            # --- LINHAS ---
+            # Load
+            for l in m.LOADS:
+                data_load.append({'time': t, 'id': l, 
+                                    'p_load': value(blk.load_p_pu[l]), 
+                                    'p_shed': value(blk.p_shed[l])})
+
+            # Lines
             for l in m.LINES:
-                line_obj = self.lines[l]
-                flow_val = v(blk.flow[l])
-                
-                # Perda na linha
-                r = line_obj.r_pu
-                x = line_obj.x_pu
-                denom = r**2 + x**2
-                g_series = r / denom if denom > 0 else 0
-                theta_diff = v(blk.theta_rad[line_obj.from_bus.name]) - v(blk.theta_rad[line_obj.to_bus.name])
-                loss_val = g_series * (theta_diff**2) * sb
-                
-                max_flow = line_obj.flow_max_pu
-                loading = (abs(flow_val) / max_flow * 100) if max_flow > 0 else 0.0
-                
-                all_line.append({
-                    "Period": t,
-                    "Line": l,
-                    "From": line_obj.from_bus.name,
-                    "To": line_obj.to_bus.name,
-                    "Flow_MW": flow_val * sb,
-                    "Max_MW": max_flow * sb,
-                    "Loading_%": loading,
-                    "Loss_MW": loss_val,
-                    "Congestion_Price": get_rc(blk.flow[l])
-                })
-        
-        # DataFrames
-        df_thermal = pd.DataFrame(all_thermal)
-        df_wind = pd.DataFrame(all_wind)
-        df_bess = pd.DataFrame(all_bess)
-        df_shed = pd.DataFrame(all_shed)
-        df_bus = pd.DataFrame(all_bus)
-        df_line = pd.DataFrame(all_line)
-        
-        # Resumo
-        resumo = pd.DataFrame({
-            "Total_Cost": [total_cost_all],
-            "Total_Loss_MW": [total_loss_all],
-            "Total_Curtailment_MW": [total_curtail_all],
-            "Total_Shed_MW": [total_shed_all],
-            "Periods": [self.periods],
-            "Status": ["Optimal" if converged else "Not Converged"]
-        })
-        
+                flow = value(blk.flow[l])
+                lim = self.lines[l].flow_max_pu
+                # Loading % (abs value for DC)
+                loading = (abs(flow)/lim*100) if lim and lim > 0 else 0
+                data_lines.append({'time': t, 'id': l, 
+                                    'p_flow_pu': flow, 
+                                    'loading_percent': loading})
+
         return {
-            "Resumo": resumo,
-            "Thermal_Generation": df_thermal,
-            "Wind_Generation": df_wind,
-            "Battery": df_bess,
-            "Load_Shed": df_shed,
-            "Bus": df_bus,
-            "Line": df_line,
-            "Total_Cost": total_cost_all
+            'generation': pd.DataFrame(data_gen),
+            'bus': pd.DataFrame(data_bus),
+            'load': pd.DataFrame(data_load),
+            'line': pd.DataFrame(data_lines)
         }
 
 
 if __name__ == "__main__":
-    import pandas as pd
-    from power import Network
-    from power.systems.b3_eolic import B3_EOLIC
-    from data_models import TimeSeries
-    
-    # Configuração do Pandas
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.float_format', '{:.4f}'.format)
-    
-    # 1. Cria rede
-    print("\n>>> Criando Sistema B3 com Eólica...")
-    net = B3_EOLIC()
-    
-    # 2. Define horizonte temporal (24 períodos = 24 horas)
+    import numpy as np
+    from power.systems import B6L8Charged
+
+    # Perfis de 24h utilizados no trabalho 9/10
+    load_profile_base = np.array([
+        0.70, 0.65, 0.62, 0.60, 0.65, 0.75,
+        0.85, 0.95, 1.00, 1.05, 1.10, 1.08,
+        1.05, 1.02, 1.00, 0.98, 1.05, 1.15,
+        1.20, 1.18, 1.10, 1.00, 0.90, 0.80
+    ])
+
+    wind_profile_base = np.array([
+        0.90, 0.95, 0.98, 0.92, 0.85, 0.80,
+        0.70, 0.60, 0.45, 0.30, 0.25, 0.35,
+        0.40, 0.30, 0.25, 0.35, 0.45, 0.55,
+        0.65, 0.75, 0.80, 0.85, 0.88, 0.92
+    ])
+
     periods = 24
-    
-    # 3. Cria estudo multiperiodo
-    print(f">>> Criando estudo multiperiodo com {periods} períodos...")
-    study = OPFMultiStep(net, periods=periods)
-    
-    # 4. Define séries temporais (exemplo com perfil diário)
-    # Perfil de carga típico (pu): baixo de madrugada, pico à tarde
-    load_profile = [0.6, 0.55, 0.5, 0.5, 0.55, 0.65, 0.75, 0.85, 0.9, 0.95, 
-                   1.0, 1.0, 0.95, 0.95, 1.0, 1.05, 1.1, 1.05, 0.95, 0.85,
-                   0.75, 0.7, 0.65, 0.6]
-    
-    # Perfil de vento típico (pu): mais vento à noite
-    wind_profile = [0.8, 0.85, 0.9, 0.85, 0.75, 0.65, 0.5, 0.4, 0.35, 0.3,
-                   0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,
-                   0.8, 0.85, 0.85, 0.8]
-    
-    # Aplica perfis às cargas e geradores
+    net = B6L8Charged()
+    opf = OPFDCMultiStep(net, periods=periods)
+
+    # Séries por carga/gerador
     for load in net.loads:
-        base_p = load.p_pu
-        series = TimeSeries(values=[base_p * factor for factor in load_profile])
-        study.set_load_series(load.name, series)
-    
-    for gen in net.wind_generators:
-        base_p = gen.p_max_pu
-        series = TimeSeries(values=[base_p * factor for factor in wind_profile])
-        study.set_wind_series(gen.name, series)
-    
-    # 5. Resolve
-    print(f"\n>>> Resolvendo OPF Multiperiodo ({periods} períodos)...")
-    results = study.solve(solver_name='ipopt', verbose=True, max_iter=10)
-    
-    # 6. Print Resultados
-    print("\n" + "="*100)
-    print(f"RELATÓRIO MULTIPERIODO - Status: {results['Resumo']['Status'].iloc[0]}")
-    print("="*100)
-    
-    tables = [
-        ("RESUMO GERAL", "Resumo"),
-        ("GERAÇÃO TÉRMICA (por período)", "Thermal_Generation"),
-        ("GERAÇÃO EÓLICA (por período)", "Wind_Generation"),
-        ("BATERIAS (por período)", "Battery"),
-        ("CORTE DE CARGA (por período)", "Load_Shed"),
-        ("BARRAS - LMP (por período)", "Bus"),
-        ("LINHAS - Fluxos (por período)", "Line"),
-    ]
-    
-    for title, key in tables:
-        df = results.get(key)
-        if df is not None and not df.empty:
-            print(f"\n--- {title} ---")
-            # Mostra apenas primeiros 50 registros para não poluir
-            if len(df) > 50:
-                print(df.head(50).to_string(index=False))
-                print(f"... ({len(df) - 50} linhas omitidas)")
-            else:
-                print(df.to_string(index=False))
-        else:
-            print(f"\n--- {title} ---\n(Sem dados)")
-    
-    print("\n" + "="*100)
+        opf.set_load_series(load.name, load_profile_base * load.p_pu)
+
+    for wnd in net.wind_generators:
+        opf.set_wind_series(wnd.name, wind_profile_base * wnd.p_max_pu)
+
+    # Build & solve
+    opf.build_multistep_model()
+    res = opf.solve_multistep(solver_name="ipopt", time_limit=300, tee=False)
+
+    total_cost = value(opf.model.GlobalObjective)
+    dfs = opf.extract_results_dataframe()
+    print("Solver status:", getattr(res, "solver", res))
+    print("Custo total (pu):", total_cost)
+
+    def _print_table(df, cols, title):
+        if df.empty:
+            return
+        keep = [c for c in cols if c in df.columns]
+        print(title)
+        print(df[keep].to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+
+    def print_hourly_reports(dfs, periods):
+        for t in range(periods):
+            print(f"\n=== Hora {t} ===")
+
+            gen = dfs['generation'][dfs['generation']['time'] == t].copy()
+            _print_table(gen, ["id", "type", "p_pu", "soc_pu"], "Geração")
+
+            load = dfs['load'][dfs['load']['time'] == t].copy()
+            _print_table(load, ["id", "p_load", "p_shed"], "Cargas / Shed")
+
+            bus = dfs['bus'][dfs['bus']['time'] == t].copy()
+            _print_table(bus, ["id", "v_pu", "theta_rad"], "Barras (V, Ângulo)")
+
+            line = dfs['line'][dfs['line']['time'] == t].copy()
+            _print_table(line, ["id", "p_flow_pu", "loading_percent"], "Linhas (Fluxo e Carregamento %)")
+
+    print_hourly_reports(dfs, periods)
