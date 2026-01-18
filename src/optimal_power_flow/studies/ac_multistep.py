@@ -110,7 +110,9 @@ class OPFACMultiStep(OPFAC):
             p_curr = m.period[t].p_thermal[g]
             
             # Pega limite de rampa ou usa Pmax (sem rampa efetiva)
-            ramp = getattr(self.thermal_generators[g], 'ramp_up_pu', self.thermal_generators[g].p_max_pu)
+            ramp = self.thermal_generators[g].max_ramp_up_pu
+            if ramp is None:
+                ramp = self.thermal_generators[g].p_max_pu
             
             return p_curr - p_prev <= ramp
 
@@ -121,7 +123,9 @@ class OPFACMultiStep(OPFAC):
             p_prev = m.period[t-1].p_thermal[g]
             p_curr = m.period[t].p_thermal[g]
             
-            ramp = getattr(self.thermal_generators[g], 'ramp_down_pu', self.thermal_generators[g].p_max_pu)
+            ramp = self.thermal_generators[g].max_ramp_down_pu
+            if ramp is None:
+                ramp = self.thermal_generators[g].p_max_pu
             
             return p_prev - p_curr <= ramp
 
@@ -161,12 +165,13 @@ class OPFACMultiStep(OPFAC):
             total_cost += sum(blk.p_thermal[g] * self.thermal_generators[g].cost_b_pu for g in m.THERMAL_GENERATORS)
             
             # Custos de Deficit (Shedding)
-            total_cost += sum(blk.p_shed[l] * self.loads[l].cost_shed_pu for l in m.LOADS)
+            total_cost += sum(blk.p_shed[l] * self.loads[l].cost_shed_pu for l in m.LOADS) 
+            total_cost += sum((blk.q_shed[l]**2) * 1e8 for l in m.LOADS)
             
             # Custos de Operação Bateria (Custo de Ciclagem/Uso)
             total_cost += sum(blk.p_bess_out[g] * self.bess[g].cost_discharge_pu + 
                               blk.p_bess_in[g] * self.bess[g].cost_charge_pu 
-                              for g in m.BESS)
+                                for g in m.BESS)
 
         m.GlobalObjective = Objective(expr=total_cost, sense=minimize)
 

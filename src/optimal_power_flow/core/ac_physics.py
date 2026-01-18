@@ -72,20 +72,26 @@ class OPFAC(OPFBaseModel):
     def create_load_shed_variables(self, container):
         m0 = self.base_sets
         m = container
+        # O limite superior (ub) é inicializado aqui, mas precisa ser atualizado se a carga mudar
         m.p_shed = Var(m0.LOADS, within=NonNegativeReals, bounds=lambda m, l: (0, m.load_p_pu[l]), initialize=0)
         m.Shed_Max_Constraint = Constraint(m0.LOADS, rule=lambda m, l: m.p_shed[l] <= m.load_p_pu[l])
         
         m.q_shed = Var(m0.LOADS, domain=Reals, initialize=0)
 
-    def update_load_params(self, container = None):
+    def update_load_params(self, container=None):
         if container is None:
             container = self.model
         m0 = self.base_sets
         m = container
         for l in m0.LOADS:
+            # 1. Atualiza o valor do parâmetro
             m.load_p_pu[l] = self.loads[l].p_pu
+            
             if hasattr(self.loads[l], "q_pu"):
                 m.load_q_pu[l] = self.loads[l].q_pu
+
+            if hasattr(m, "p_shed") and l in m.p_shed:
+                m.p_shed[l].setub(self.loads[l].p_pu)
 
     # ------------- Wind Generators ---------------#
     def create_wind_block(self, container):
@@ -121,7 +127,12 @@ class OPFAC(OPFBaseModel):
         m0 = self.base_sets
         m = container
         for g in m0.WIND_GENERATORS:
+            # 1. Atualiza Parametro
             m.wind_max_p_pu[g] = self.wind_generators[g].p_max_pu
+            
+            # 2. Atualiza Upper Bound da variavel (Mesma lógica do load)
+            if hasattr(m, "p_wind") and g in m.p_wind:
+                m.p_wind[g].setub(self.wind_generators[g].p_max_pu)
 
     # ------------- Battery (BESS) ---------------#
     def create_bess_block(self, container):
@@ -215,14 +226,12 @@ class OPFAC(OPFBaseModel):
         def get_idx(bus_id): return self.net.bus_idx[bus_id]
 
         # --- FLUXO ATIVO (P) ---
-        # P geralmente ignora shunt (G_shunt ≈ 0), então Y_ij (série) basta.
         
         def flow_out_rule(m, ln):
             line = self.lines[ln]
             i_idx = get_idx(line.from_bus.id)
             j_idx = get_idx(line.to_bus.id)
             
-            # Recupera a parte série da Ybus (lembrando que Y_ij = -y_serie)
             G_ij = self.net.g_bus[i_idx, j_idx]
             B_ij = self.net.b_bus[i_idx, j_idx]
             
@@ -230,7 +239,6 @@ class OPFAC(OPFBaseModel):
             j = line.to_bus.name
             theta_ij = m.theta_rad[i] - m.theta_rad[j]
             
-            # Equação Padrão usando Elementos da Ybus (-G_ij = g_linha)
             return m.p_flow_out[ln] == (
                 -G_ij * m.v_pu[i]**2 
                 + m.v_pu[i] * m.v_pu[j] * (G_ij * cos(theta_ij) + B_ij * sin(theta_ij))
@@ -329,12 +337,9 @@ class OPFAC(OPFBaseModel):
             shed = sum(m.p_shed[l] for l in m0.LOADS if self.loads[l].bus.name == bus)
             
             # 3. Fluxos nas Linhas (AMBOS representam potência SAINDO da barra para a linha)
-            # p_flow_out: Sai da barra 'from'
-            # p_flow_in: Sai da barra 'to'
             flows_leaving_bus = sum(m.p_flow_out[ln] for ln in m0.LINES if self.lines[ln].from_bus.name == bus) + \
                                 sum(m.p_flow_in[ln] for ln in m0.LINES if self.lines[ln].to_bus.name == bus)
             
-            # Equação Fundamental: (Geração + Corte) - Carga = Tudo que sai para as linhas
             return gen_thermal + gen_wind + gen_bess + shed - flows_leaving_bus == load
             
         m.active_power_balance = Constraint(m0.BUSES, rule=active_power_balance_rule)

@@ -109,7 +109,9 @@ class OPFDCMultiStep(OPFDC):
             p_prev = m.period[t-1].p_thermal[g]
             p_curr = m.period[t].p_thermal[g]
             
-            ramp = getattr(self.thermal_generators[g], 'ramp_up_pu', self.thermal_generators[g].p_max_pu)
+            ramp = self.thermal_generators[g].max_ramp_up_pu
+            if ramp is None:
+                ramp = self.thermal_generators[g].p_max_pu
             return p_curr - p_prev <= ramp
 
         def ramp_down_rule(m, g, t):
@@ -118,7 +120,9 @@ class OPFDCMultiStep(OPFDC):
             p_prev = m.period[t-1].p_thermal[g]
             p_curr = m.period[t].p_thermal[g]
             
-            ramp = getattr(self.thermal_generators[g], 'ramp_down_pu', self.thermal_generators[g].p_max_pu)
+            ramp = self.thermal_generators[g].max_ramp_down_pu
+            if ramp is None:
+                ramp = self.thermal_generators[g].p_max_pu
             return p_prev - p_curr <= ramp
 
         m.Ramp_Up_Constraint = Constraint(m.THERMAL_GENERATORS, m.TIME, rule=ramp_up_rule)
