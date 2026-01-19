@@ -84,6 +84,27 @@ class ACMinDeviation(OPFAC):
         # Garante compatibilidade se a rede estiver em self.network ou self.net
         net_obj = getattr(self, 'network', getattr(self, 'net', None))
         sb = net_obj.base_mva if hasattr(net_obj, 'base_mva') else 100.0
+
+        # --- Custo econômico reconstruído a partir do despacho final ---
+        def compute_total_cost():
+            cost_th = sum(
+                self.thermal_generators[g].cost_a_pu
+                + self.thermal_generators[g].cost_b_pu * value(m.p_thermal[g])
+                + self.thermal_generators[g].cost_c_pu * (value(m.p_thermal[g]) ** 2)
+                for g in m.THERMAL_GENERATORS
+            )
+            cost_shed = sum(
+                self.loads[l].cost_shed_pu * value(m.p_shed[l])
+                for l in m.LOADS
+            )
+            cost_bess = 0.0
+            if hasattr(m, "BESS"):
+                cost_bess = sum(
+                    self.bess[b].cost_discharge_pu * value(m.p_bess_out[b])
+                    + self.bess[b].cost_charge_pu * value(m.p_bess_in[b])
+                    for b in m.BESS
+                )
+            return cost_th + cost_shed + cost_bess
         
         # --- Helpers ---
         def v(var): return value(var) if var is not None else 0.0
@@ -208,7 +229,7 @@ class ACMinDeviation(OPFAC):
 
         # --- 7. RESUMO ---
         resumo = pd.DataFrame({
-            "Total_Cost": [value(m.obj)],
+            "Total_Cost": [compute_total_cost()],
             "Total_P_Shed_MW": [total_p_shed * sb],
             "Total_Q_Virtual_MVAr": [total_q_virtual * sb],
             "Status": ["Optimal" if converged else "Not Converged"]
