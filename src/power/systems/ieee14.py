@@ -52,12 +52,13 @@ class IEEE14(Network):
         Line(id=20, from_bus=self.buses[12], to_bus=self.buses[13], r_pu=0.17093, x_pu=0.34802, shunt_half_pu=0.0)                    
 
     def _create_generators(self):                                                
-        ThermalGenerator(id=1, bus=self.buses[0])                           
+        ThermalGenerator(id=1, bus=self.buses[0], p_mw=232.39)                           
         ThermalGenerator(id=2, bus=self.buses[1], p_mw=40.00)     
         ThermalGenerator(id=3, bus=self.buses[2])                           
         ThermalGenerator(id=4, bus=self.buses[4])                            
         ThermalGenerator(id=5, bus=self.buses[5])                            
         ThermalGenerator(id=6, bus=self.buses[7]) 
+
     def _create_loads(self):                            
         Load(id= 1, bus=self.buses[ 1], p_mw=21.70, q_mvar=12.70)
         Load(id= 2, bus=self.buses[ 2], p_mw=94.20, q_mvar=19.00)

@@ -19,6 +19,9 @@ class Load:
     q_min_mvar:   float = None
     cost_shed_mw: float = 10000.0
     power_factor: float = 1.0
+    p_shed_mw:    float = 0.0
+    q_shed_mvar:  float = 0.0
+
     p_mw_series: Optional[TimeSeries] = field(default=None, repr=False)
     
     #Attributes for loads that make bids on a market
@@ -44,8 +47,15 @@ class Load:
         self.p_mw = new_p_pu * self.sb_mva
     
     @property
-    def p_series(self) -> np.ndarray:
+    def p_pu_series(self) -> np.ndarray:
         return self.p_mw_series/ self.sb_mva
+    
+    @property
+    def p_shed_pu(self) -> float:
+        return self.p_shed_mw / self.sb_mva
+    @p_shed_pu.setter
+    def p_shed_pu(self, new_p_shed_pu: float):
+        self.p_shed_mw = new_p_shed_pu * self.sb_mva
 
     # --- Potência Reativa (q) ---
     @property
@@ -57,8 +67,15 @@ class Load:
         self.q_mvar = new_q_pu * self.sb_mva
     
     @property
-    def q_series(self) -> np.ndarray:
-        return self.p_series * np.tan(np.arccos(self.power_factor))
+    def q_pu_series(self) -> np.ndarray:
+        return self.p_pu_series * np.tan(np.arccos(self.power_factor))
+    
+    @property
+    def q_shed_pu(self) -> float:
+        return self.q_shed_mvar / self.sb_mva
+    @q_shed_pu.setter
+    def q_shed_pu(self, new_q_shed_pu: float):
+        self.q_shed_mvar = new_q_shed_pu * self.sb_mva
     
     # --- Potência Ativa Máxima (p_max_pu) ---
     @property

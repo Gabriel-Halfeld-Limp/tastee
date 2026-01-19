@@ -343,19 +343,19 @@ class IEEE118Charged(Network):
         """
 
         # Conventional Generators from DGER data
-        ThermalGenerator(id= 1,   bus=self.buses[  0], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 130.0,   q_min_mvar=  -5.0,   q_max_mvar=  15.0,   cost_b_mw=  1.0)
-        ThermalGenerator(id= 2,   bus=self.buses[  5], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 150.0,   q_min_mvar= -13.0,   q_max_mvar=  50.0,   cost_b_mw=  6.0)
-        ThermalGenerator(id= 3,   bus=self.buses[  7], p_mw=-28.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 470.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw=  8.0)
-        ThermalGenerator(id= 4,   bus=self.buses[ 14], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 450.0,   q_min_mvar= -10.0,   q_max_mvar=  30.0,   cost_b_mw= 15.0)
-        ThermalGenerator(id= 5,   bus=self.buses[ 23], p_mw=-13.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 250.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 24.0)
-        ThermalGenerator(id= 6,   bus=self.buses[ 41], p_mw=-59.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 140.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 42.0)
-        ThermalGenerator(id= 7,   bus=self.buses[ 45], p_mw= 19.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 120.0,   q_min_mvar=-100.0,   q_max_mvar= 100.0,   cost_b_mw= 46.0)
-        ThermalGenerator(id= 8,   bus=self.buses[ 48], p_mw=204.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 450.0,   q_min_mvar= -85.0,   q_max_mvar= 210.0,   cost_b_mw= 49.0)
-        ThermalGenerator(id= 9,   bus=self.buses[ 53], p_mw= 48.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 570.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 54.0)
-        ThermalGenerator(id=10,   bus=self.buses[ 68], p_mw=516.4,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw=1000.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 69.0)
-        ThermalGenerator(id=11,   bus=self.buses[ 79], p_mw=477.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw=1000.0,   q_min_mvar=-165.0,   q_max_mvar= 280.0,   cost_b_mw= 80.0)
-        ThermalGenerator(id=12,   bus=self.buses[ 84], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 300.0,   q_min_mvar=  -8.0,   q_max_mvar=  23.0,   cost_b_mw= 85.0)
-        ThermalGenerator(id=13,   bus=self.buses[ 89], p_mw=-85.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 250.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 90.0)
+        ThermalGenerator(id= 1,   bus=self.buses[  0], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 130.0,   q_min_mvar=  -5.0,   q_max_mvar=  15.0,   cost_b_mw=  1.0, max_ramp_up_mw=0.4*130.0,  max_ramp_down_mw=0.4*130.0)
+        ThermalGenerator(id= 2,   bus=self.buses[  5], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 150.0,   q_min_mvar= -13.0,   q_max_mvar=  50.0,   cost_b_mw=  6.0, max_ramp_up_mw=0.4*150.0,  max_ramp_down_mw=0.4*150.0)
+        ThermalGenerator(id= 3,   bus=self.buses[  7], p_mw=-28.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 470.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw=  8.0, max_ramp_up_mw=0.4*470.0,  max_ramp_down_mw=0.4*470.0)
+        ThermalGenerator(id= 4,   bus=self.buses[ 14], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 450.0,   q_min_mvar= -10.0,   q_max_mvar=  30.0,   cost_b_mw= 15.0, max_ramp_up_mw=0.4*450.0,  max_ramp_down_mw=0.4*450.0)
+        ThermalGenerator(id= 5,   bus=self.buses[ 23], p_mw=-13.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 250.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 24.0, max_ramp_up_mw=0.4*250.0,  max_ramp_down_mw=0.4*250.0)
+        ThermalGenerator(id= 6,   bus=self.buses[ 41], p_mw=-59.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 140.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 42.0, max_ramp_up_mw=0.4*140.0,  max_ramp_down_mw=0.4*140.0)
+        ThermalGenerator(id= 7,   bus=self.buses[ 45], p_mw= 19.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 120.0,   q_min_mvar=-100.0,   q_max_mvar= 100.0,   cost_b_mw= 46.0, max_ramp_up_mw=0.4*120.0,  max_ramp_down_mw=0.4*120.0)
+        ThermalGenerator(id= 8,   bus=self.buses[ 48], p_mw=204.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 450.0,   q_min_mvar= -85.0,   q_max_mvar= 210.0,   cost_b_mw= 49.0, max_ramp_up_mw=0.4*450.0,  max_ramp_down_mw=0.4*450.0)
+        ThermalGenerator(id= 9,   bus=self.buses[ 53], p_mw= 48.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 570.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 54.0, max_ramp_up_mw=0.4*570.0,  max_ramp_down_mw=0.4*570.0)
+        ThermalGenerator(id=10,   bus=self.buses[ 68], p_mw=516.4,  q_mvar=0.0,   p_min_mw=0.0,   p_max_mw=1000.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 69.0, max_ramp_up_mw=0.4*1000.0, max_ramp_down_mw=0.4*1000.0)
+        ThermalGenerator(id=11,   bus=self.buses[ 79], p_mw=477.0,  q_mvar=0.0,   p_min_mw=0.0,   p_max_mw=1000.0,   q_min_mvar=-165.0,   q_max_mvar= 280.0,   cost_b_mw= 80.0, max_ramp_up_mw=0.4*1000.0, max_ramp_down_mw=0.4*1000.0)
+        ThermalGenerator(id=12,   bus=self.buses[ 84], p_mw=  0.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 300.0,   q_min_mvar=  -8.0,   q_max_mvar=  23.0,   cost_b_mw= 85.0, max_ramp_up_mw=0.4*300.0,  max_ramp_down_mw=0.4*300.0)
+        ThermalGenerator(id=13,   bus=self.buses[ 89], p_mw=-85.0,   q_mvar=0.0,   p_min_mw=0.0,   p_max_mw= 250.0,   q_min_mvar=-300.0,   q_max_mvar= 300.0,   cost_b_mw= 90.0, max_ramp_up_mw=0.4*250.0,  max_ramp_down_mw=0.4*250.0)
 
         # Wind Generators from DGW data
         WindGenerator(id=14, bus=self.buses[  0], p_min_mw=0.0, p_max_mw=10*10.0)

@@ -6,18 +6,19 @@ from power.electricity_models.generator_models.generator import Generator
 class Battery(Generator):
     capacity_mwh:         float = 0.0           # Energia total armazenável
     soc_mwh:              float = 0.0           # Estado de carga atual (energia) em MWh
-    efficiency_charge:    float = 0.95     # Eficiência de carga
-    efficiency_discharge: float = 0.95  # Eficiência de descarga
-    cost_charge_mw:       float = -1       # Custo de carregar por MW (custo negativo indica pagamento para carregar)
-    cost_discharge_mw:    float = 0.0      # Custo de descarregar por MW
+    efficiency_charge:    float = 0.95          # Eficiência de carga
+    efficiency_discharge: float = 0.95          # Eficiência de descarga
+    cost_charge_mw:       float = -1            # Custo de carregar por MW (custo negativo indica pagamento para carregar)
+    cost_discharge_mw:    float = 0.0           # Custo de descarregar por MW
+    inverter_s_max_mva: Optional[float] = None  # Capacidade máxima do inversor em MVA
 
     def __post_init__(self):
-        super().__post_init__()
         if self.soc_mwh > self.capacity_mwh:
             raise ValueError("Estado de carga (soc_mwh) não pode exceder a capacidade (capacity_mwh).")
         # Renomeia se vier com nome default do Generator
-        if self.name == f"Generator_{self.id}":
+        if self.name is None:
             self.name = f"Battery_{self.id}"
+        super().__post_init__()
 
     # --- Capacidade em pu (assumindo base de energia = sb_mva * 1h) ---
     @property
@@ -33,11 +34,15 @@ class Battery(Generator):
     # --- Estado de Carga em pu ---
     @property
     def soc_pu(self) -> float:
-        return self.soc_mwh / self.capacity_mwh if self.capacity_mwh > 0 else 0.0
+        return self.soc_mwh / self.sb_mva if self.sb_mva > 0 else 0.0
 
     @soc_pu.setter
     def soc_pu(self, new_soc_pu: float):
-        self.soc_mwh = new_soc_pu * self.capacity_mwh
+        self.soc_mwh = new_soc_pu * self.sb_mva
+    
+    @property
+    def soc_percentage(self) -> float:
+        return (self.soc_mwh / self.capacity_mwh * 100) if self.capacity_mwh > 0 else 0.0
 
     # --- Custos em pu ---
     @property
@@ -95,4 +100,25 @@ class Battery(Generator):
             raise ValueError("Taxa máxima de carga (pu) deve ser não negativa.")
         self.max_charge_rate_mw = value_pu * self.sb_mva
 
+    # --- Inverter capacity ---
+    @property
+    def inverter_s_max_pu(self) -> Optional[float]:
+        if self.inverter_s_max_mva is None:
+            return None
+        return self.inverter_s_max_mva / self.sb_mva
+    
+    @inverter_s_max_pu.setter
+    def inverter_s_max_pu(self, value_pu: Optional[float]):
+        if value_pu is None:
+            self.inverter_s_max_mva = None
+        else:
+            self.inverter_s_max_mva = value_pu * self.sb_mva
 
+# ------------- DC Physics Model BESS Integration ---------------#
+    @property
+    def dc_max_charge_rate_pu(self) -> float:
+        return self.max_charge_rate_pu if self.inverter_s_max_pu is None else min(self.max_charge_rate_pu, self.inverter_s_max_pu)
+
+    @property
+    def dc_max_discharge_rate_pu(self) -> float:
+        return self.max_discharge_rate_pu if self.inverter_s_max_pu is None else min(self.max_discharge_rate_pu, self.inverter_s_max_pu)

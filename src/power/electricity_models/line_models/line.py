@@ -16,6 +16,12 @@ class Line:
     flow_min_pu:   float = -999999.0
     tap_ratio:     float = 1.0
     tap_phase_deg: float = 0.0
+    # Properties to hold flow current states
+    p_flow_out_pu:  float = 0.0
+    p_flow_in_pu:   float = 0.0
+    q_flow_out_pu:  float = 0.0
+    q_flow_in_pu:   float = 0.0
+
 
     def __post_init__(self):
         if self.name is None:
@@ -45,16 +51,11 @@ class Line:
         """Fase de tap em radianos"""
         return np.deg2rad(self.tap_phase_deg)
     
-    # @property
-    # def flow_max_pu(self) -> float:
-    #     """Fluxo máximo de potência ativa (pu)"""
-    #     return self.flow_max_mw / self.sb_mva
+    @property
+    def line_loss_pu(self) -> float:
+        """Calcula a perda de potência ativa na linha (pu)"""
+        return self.p_flow_out_pu + self.p_flow_in_pu
     
-    # @flow_max_pu.setter
-    # def flow_max_pu(self, new_flow_max_pu: float):
-    #     """Define o fluxo máximo a partir de um valor em pu."""
-    #     self.flow_max_mw = new_flow_max_pu * self.sb_mva
-
     def get_ybus_elements(self):
         """Gera os elementos de admitância baseados nos parâmetros da linha"""
         y = self.y_pu
@@ -99,4 +100,6 @@ class Line:
         return T_line
 
     def __repr__(self):
-        return (f"Line(id={self.name}, Barra para:{self.from_bus.id}, Barra de:{self.to_bus.id}, r_ohms={self.r_pu:.4f}, x_ohms={self.x_pu:.4f}, tap_ratio={self.tap_ratio:.4f}, tap_phase_deg={self.tap_phase_deg:.4f}, b_half_siemens={self.shunt_admittance_half:.4f})")
+        return (f"Line(id={self.name}, From:{self.from_bus.id}, To:{self.to_bus.id}, "
+                f"r={self.r_pu:.4f}, x={self.x_pu:.4f}, "
+                f"FlowP_Out={self.p_flow_out_pu:.3f}, FlowP_In={self.p_flow_in_pu:.3f})")

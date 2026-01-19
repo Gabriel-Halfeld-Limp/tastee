@@ -104,7 +104,7 @@ class Network:
         Returns:
             Z_bus (np.ndarray): The Z bus matrix of the network.
         """
-        Z = np.linalg.inv(self.y_bus())
+        Z = np.linalg.inv(self.y_bus)
         if ref_bus is None:
             return Z
         

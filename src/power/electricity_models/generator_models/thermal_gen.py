@@ -8,12 +8,12 @@ class ThermalGenerator(Generator):
     cost_b_mw: float = 0.0
     cost_c_mw: float = 0.0
     max_ramp_up_mw: float = 99999
-    max_ramp_down_mw: float = -99999
+    max_ramp_down_mw: float = 99999
 
     def __post_init__(self):
-        super().__post_init__()
-        if self.name == f"Generator_{self.id}":
+        if self.name is None:
             self.name = f"ThermalGenerator_{self.id}"
+        super().__post_init__()
 
     # --- Coeficiente de Custo 'a' (quadrático) ---
     @property
