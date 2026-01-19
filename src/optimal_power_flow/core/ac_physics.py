@@ -222,84 +222,81 @@ class OPFAC(OPFBaseModel):
         m.q_flow_out = Var(m0.LINES, domain=Reals, initialize=0)
         m.q_flow_in = Var(m0.LINES, domain=Reals, initialize=0)
 
-        # Helper para índices
-        def get_idx(bus_id): return self.net.bus_idx[bus_id]
-
-        # --- FLUXO ATIVO (P) ---
-        
+        # --- FLUXOS POR LINHA (usa parâmetros individuais, preserva taps e paralelos) ---
         def flow_out_rule(m, ln):
             line = self.lines[ln]
-            i_idx = get_idx(line.from_bus.id)
-            j_idx = get_idx(line.to_bus.id)
-            
-            G_ij = self.net.g_bus[i_idx, j_idx]
-            B_ij = self.net.b_bus[i_idx, j_idx]
-            
+            y_elems = line.get_ybus_elements()
+            Yff = y_elems['Yff']
+            Yft = y_elems['Yft']
+
+            g_ff = Yff.real; b_ff = Yff.imag
+            g_ft = Yft.real; b_ft = Yft.imag
+
             i = line.from_bus.name
             j = line.to_bus.name
             theta_ij = m.theta_rad[i] - m.theta_rad[j]
-            
+
             return m.p_flow_out[ln] == (
-                -G_ij * m.v_pu[i]**2 
-                + m.v_pu[i] * m.v_pu[j] * (G_ij * cos(theta_ij) + B_ij * sin(theta_ij))
+                g_ff * m.v_pu[i]**2
+                + m.v_pu[i] * m.v_pu[j] * (g_ft * cos(theta_ij) + b_ft * sin(theta_ij))
             )
         m.flow_out_rule = Constraint(m0.LINES, rule=flow_out_rule)
 
         def flow_in_rule(m, ln):
             line = self.lines[ln]
-            i_idx = get_idx(line.from_bus.id)
-            j_idx = get_idx(line.to_bus.id)
-            
-            G_ji = self.net.g_bus[j_idx, i_idx]
-            B_ji = self.net.b_bus[j_idx, i_idx]
-            
-            i = line.from_bus.name
-            j = line.to_bus.name
-            theta_ji = m.theta_rad[j] - m.theta_rad[i]
-            
+            y_elems = line.get_ybus_elements()
+            Ytt = y_elems['Ytt']
+            Ytf = y_elems['Ytf']
+
+            g_tt = Ytt.real; b_tt = Ytt.imag
+            g_tf = Ytf.real; b_tf = Ytf.imag
+
+            i = line.to_bus.name
+            j = line.from_bus.name
+            theta_ji = m.theta_rad[i] - m.theta_rad[j]
+
             return m.p_flow_in[ln] == (
-                -G_ji * m.v_pu[j]**2 
-                + m.v_pu[j] * m.v_pu[i] * (G_ji * cos(theta_ji) + B_ji * sin(theta_ji))
+                g_tt * m.v_pu[i]**2
+                + m.v_pu[i] * m.v_pu[j] * (g_tf * cos(theta_ji) + b_tf * sin(theta_ji))
             )
         m.flow_in_rule = Constraint(m0.LINES, rule=flow_in_rule)
 
         # --- FLUXO REATIVO (Q) ---
         def flow_out_q_rule(m, ln):
             line = self.lines[ln]
-            i_idx = get_idx(line.from_bus.id)
-            j_idx = get_idx(line.to_bus.id)
-            
-            G_ij = self.net.g_bus[i_idx, j_idx]
-            B_ij = self.net.b_bus[i_idx, j_idx]
-            
-            b_sh = line.shunt_half_pu 
-            
+            y_elems = line.get_ybus_elements()
+            Yff = y_elems['Yff']
+            Yft = y_elems['Yft']
+
+            g_ff = Yff.real; b_ff = Yff.imag
+            g_ft = Yft.real; b_ft = Yft.imag
+
             i = line.from_bus.name
             j = line.to_bus.name
             theta_ij = m.theta_rad[i] - m.theta_rad[j]
-            
+
             return m.q_flow_out[ln] == (
-                (B_ij - b_sh) * m.v_pu[i]**2 
-                + m.v_pu[i] * m.v_pu[j] * (G_ij * sin(theta_ij) - B_ij * cos(theta_ij))
+                -b_ff * m.v_pu[i]**2
+                + m.v_pu[i] * m.v_pu[j] * (g_ft * sin(theta_ij) - b_ft * cos(theta_ij))
             )
         m.flow_out_q_rule = Constraint(m0.LINES, rule=flow_out_q_rule)
 
         def flow_in_q_rule(m, ln):
             line = self.lines[ln]
-            i_idx = get_idx(line.from_bus.id)
-            j_idx = get_idx(line.to_bus.id)
-            
-            G_ji = self.net.g_bus[j_idx, i_idx]
-            B_ji = self.net.b_bus[j_idx, i_idx]
-            b_sh = line.shunt_half_pu
-            
-            i = line.from_bus.name
-            j = line.to_bus.name
-            theta_ji = m.theta_rad[j] - m.theta_rad[i]
-            
+            y_elems = line.get_ybus_elements()
+            Ytt = y_elems['Ytt']
+            Ytf = y_elems['Ytf']
+
+            g_tt = Ytt.real; b_tt = Ytt.imag
+            g_tf = Ytf.real; b_tf = Ytf.imag
+
+            i = line.to_bus.name
+            j = line.from_bus.name
+            theta_ji = m.theta_rad[i] - m.theta_rad[j]
+
             return m.q_flow_in[ln] == (
-                (B_ji - b_sh) * m.v_pu[j]**2 
-                + m.v_pu[j] * m.v_pu[i] * (G_ji * sin(theta_ji) - B_ji * cos(theta_ji))
+                -b_tt * m.v_pu[i]**2
+                + m.v_pu[i] * m.v_pu[j] * (g_tf * sin(theta_ji) - b_tf * cos(theta_ji))
             )
         m.flow_in_q_rule = Constraint(m0.LINES, rule=flow_in_q_rule)
 

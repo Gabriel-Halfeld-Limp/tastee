@@ -46,4 +46,4 @@ class B3EOLCharged(Network):
         """
         Cria as cargas do sistema.
         """
-        Load(id=1, bus=self.buses[2], p_mw=20.0, cost_shed_mw=400)
+        Load(id=1, bus=self.buses[2], p_mw=20.0, q_mvar=10.0, cost_shed_mw=400)

@@ -185,7 +185,7 @@ if __name__ == "__main__":
     pd.set_option('display.float_format', '{:.4f}'.format)
 
     print(">>> 1. Creating System (AC Mode)...")
-    net = B6L8Charged()
+    net = B6L8()
 
     print("\n>>> 2. Running AC Economic Dispatch (ACEconDispatch)...")
     study = ACEconDispatch(net)

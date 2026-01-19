@@ -195,7 +195,10 @@ class OPFACMultiStep(OPFAC):
             if time_limit:
                 opt.options['max_cpu_time'] = time_limit
 
-        results = opt.solve(self.model, tee=tee)
+        try:
+            results = opt.solve(self.model, tee=tee)
+        except Exception as e:
+            raise RuntimeError(f"Solver error: {e}")
 
         term = results.solver.termination_condition
         status = results.solver.status
@@ -283,25 +286,32 @@ class OPFACMultiStep(OPFAC):
 
 if __name__ == "__main__":
     import numpy as np
-    from power.systems import B6L8Charged
+    from power.systems import *
 
     # Perfis de 24h utilizados no trabalho 9/10
+    # load_profile_base = np.array([
+    #     0.70, 0.65, 0.62, 0.60, 0.65, 0.75,
+    #     0.85, 0.95, 1.00, 1.05, 1.10, 1.08,
+    #     1.05, 1.02, 1.00, 0.98, 1.05, 1.15,
+    #     1.20, 1.18, 1.10, 1.00, 0.90, 0.80
+    # ])
+
+    # wind_profile_base = np.array([
+    #     0.90, 0.95, 0.98, 0.92, 0.85, 0.80,
+    #     0.70, 0.60, 0.45, 0.30, 0.25, 0.35,
+    #     0.40, 0.30, 0.25, 0.35, 0.45, 0.55,
+    #     0.65, 0.75, 0.80, 0.85, 0.88, 0.92
+    # ])
     load_profile_base = np.array([
-        0.70, 0.65, 0.62, 0.60, 0.65, 0.75,
-        0.85, 0.95, 1.00, 1.05, 1.10, 1.08,
-        1.05, 1.02, 1.00, 0.98, 1.05, 1.15,
-        1.20, 1.18, 1.10, 1.00, 0.90, 0.80
+        1
     ])
 
     wind_profile_base = np.array([
-        0.90, 0.95, 0.98, 0.92, 0.85, 0.80,
-        0.70, 0.60, 0.45, 0.30, 0.25, 0.35,
-        0.40, 0.30, 0.25, 0.35, 0.45, 0.55,
-        0.65, 0.75, 0.80, 0.85, 0.88, 0.92
+        1
     ])
 
-    periods = 24
-    net = B6L8Charged()
+    periods = 1
+    net = IEEE118()
     opf = OPFACMultiStep(net, periods=periods)
 
     # Carrega séries para cada carga e gerador eólico
@@ -313,7 +323,11 @@ if __name__ == "__main__":
 
     # Build and solve
     opf.build_multistep_model()
-    res = opf.solve_multistep(solver_name="ipopt", time_limit=300, tee=False)
+    with open('debug_model.txt', 'w') as f:
+        opf.model.pprint(ostream=f)
+    
+    print("Modelo salvo em 'debug_model.txt'. Abra para conferir.")
+    res = opf.solve_multistep(solver_name="ipopt", time_limit=300, tee=True)
 
     # Relatórios rápidos
     total_cost = value(opf.model.GlobalObjective)
