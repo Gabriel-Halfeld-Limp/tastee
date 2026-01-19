@@ -225,40 +225,101 @@ class AC_PF:
         self.flows = np.array(flows)
         return self.flows
 
-    def get_line_flows(self):
+    def get_complex_line_flows(self):
         """
-        Calcula os fluxos de potência ativa Pij (de i para j) e Pji (de j para i) para cada linha.
+        Calcula os fluxos completos (P e Q) nas extremidades de cada linha.
+        Necessário para calcular carregamento (S) e perdas reais.
+        
         Retorna:
-            flows_from (np.ndarray): Fluxos do lado from_bus (Pij).
-            flows_to (np.ndarray): Fluxos do lado to_bus (Pji).
+            flows (list of dict): Lista com P_from, Q_from, P_to, Q_to para cada linha.
         """
-        flows_from = []
-        flows_to = []
+        results = []
         V = self.V
-        theta = self.theta
+        # Converter theta para radianos para o cálculo trigonométrico
+        theta = np.deg2rad(self.theta) 
+        
         for line in self.network.lines:
             i = self.bus_idx[line.from_bus.id]
             j = self.bus_idx[line.to_bus.id]
+            
+            # Parâmetros da linha
             r = getattr(line, 'r_pu', 0.0)
             x = getattr(line, 'x_pu', 0.0)
-            b_shunt = getattr(line, 'shunt_half_pu', 0.0)
+            b_shunt = getattr(line, 'b_pu', 0.0) / 2 # Metade do B total (Pi-model)
+            
+            # Admitância série (g + jb)
             z = r + 1j * x
             y = 1 / z if z != 0 else 0
             g = np.real(y)
             b = np.imag(y)
-
+            
+            # Variáveis de estado
             Vi = V[i]
             Vj = V[j]
-            thetai = np.deg2rad(theta[i])
-            thetaj = np.deg2rad(theta[j])
-            delta = thetai - thetaj
+            delta = theta[i] - theta[j]
+            
+            # --- Fórmulas de Fluxo de Potência (From -> To) ---
+            # Pij = Vi^2 * g - Vi*Vj * (g*cos(d) + b*sin(d))
+            # Qij = -Vi^2 * (b + b_shunt) - Vi*Vj * (g*sin(d) - b*cos(d))
+            
+            p_from = Vi**2 * g - Vi * Vj * (g * np.cos(delta) + b * np.sin(delta))
+            q_from = - (Vi**2 * (b + b_shunt)) - Vi * Vj * (g * np.sin(delta) - b * np.cos(delta))
+            
+            # --- Fórmulas de Fluxo de Potência (To -> From) ---
+            # Inverte indices e sinal do delta
+            p_to = Vj**2 * g - Vj * Vi * (g * np.cos(-delta) + b * np.sin(-delta))
+            q_to = - (Vj**2 * (b + b_shunt)) - Vj * Vi * (g * np.sin(-delta) - b * np.cos(-delta))
+            
+            results.append({
+                "p_from": p_from, "q_from": q_from,
+                "p_to": p_to,     "q_to": q_to
+            })
+            
+        return results
 
-            # Fluxo de potência ativa de i para j (Pij)
-            Pij = Vi**2 * g - Vi * Vj * (g * np.cos(delta) + b * np.sin(delta)) 
+    def update_network_with_results(self):
+        """
+        Atualiza o objeto network com os resultados do Power Flow.
+        """
+        # 1. Atualizar Barras (Tensão e Ângulo)
+        for i, bus in enumerate(self.network.buses):
+            bus.v_pu = self.V[i]
+            bus.theta_rad = np.deg2rad(self.theta[i])
 
-            # Fluxo de potência ativa de j para i (Pji)
-            Pji = Vj**2 * g - Vj * Vi * (g * np.cos(-delta) + b * np.sin(-delta))
+        # 2. Calcular Injeção Nodal Líquida (O que a rede "vê")
+        # pq_calc retorna P_inj e Q_inj (Geração - Carga)
+        P_inj_calc, Q_inj_calc = self.pq_calc(np.deg2rad(self.theta), self.V)
 
-            flows_from.append(Pij)
-            flows_to.append(Pji)
-        return np.array(flows_from), np.array(flows_to)
+        for i, bus in enumerate(self.network.buses):
+            # Soma das cargas nesta barra
+            p_load_total = sum(l.p_pu for l in bus.loads)
+            q_load_total = sum(l.q_pu for l in bus.loads)
+
+            if bus.btype == BusType.SLACK:
+                # Slack: O PF calcula P e Q necessários
+                if bus.generators:
+                    # Assume que o primeiro gerador assume o balanço (padrão IEEE)
+                    gen = bus.generators[0]
+                    gen.p_pu = P_inj_calc[i] + p_load_total
+                    gen.q_pu = Q_inj_calc[i] + q_load_total
+            
+            elif bus.btype == BusType.PV:
+                # PV: O P é fixo (entrada), mas o Q é calculado pelo PF
+                if bus.generators:
+                    gen = bus.generators[0]
+                    # P mantém o input (não alteramos)
+                    # Q é atualizado
+                    gen.q_pu = Q_inj_calc[i] + q_load_total
+
+        # 4. Atualizar Linhas (Fluxos P e Q completos) 
+        line_results = self.get_complex_line_flows()
+        
+        for i, line in enumerate(self.network.lines):
+            res = line_results[i]
+            # Usamos os nomes de atributos compatíveis com o OPF extract_results
+            line.p_flow_out_pu = res["p_from"] # From -> To
+            line.q_flow_out_pu = res["q_from"]
+            line.p_flow_in_pu = res["p_to"]    # To -> From
+            line.q_flow_in_pu = res["q_to"]
+
+

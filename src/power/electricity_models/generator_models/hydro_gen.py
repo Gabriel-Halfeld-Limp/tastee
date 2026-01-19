@@ -19,9 +19,13 @@ class HydroGenerator(Generator):
     engolimento_max: float = 10000.0  # Engolimento máximo (m3/s)
 
     def __post_init__(self):
-        super().__post_init__()
-        if self.name == f"Generator_{self.id}":
+        if self.hydro_bus is None:
+            raise ValueError(f"hydro_bus must be provided for HydroGenerator{self.id}.")
+    
+        if self.name is None:
             self.name = f"HydroGenerator_{self.id}"
+
+        super().__post_init__()
         self.hydro_bus.add_generator(self)
         self.hydro_network = self.hydro_bus.hydro_network
         self.hydro_network.add_generator(self)
